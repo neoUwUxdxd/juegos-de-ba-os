@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Juegos de Baño</title>
+  <meta name="description" content="Mini juegos cortitos para jugar con una mano mientras estás en el trono.">
+  <meta name="theme-color" content="#d8f0ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#101a2c" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧻</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/common.js"></script>
+  <script src="js/fx.js"></script>
+  <style>
+    .wrap { max-width: 560px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 16px 40px; }
+    .topbar { display: flex; justify-content: flex-end; gap: 10px; }
+
+    /* Letrero de la puerta */
+    .sign {
+      position: relative;
+      margin: 10px auto 0;
+      text-align: center;
+      padding: 22px 18px 20px;
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.25), transparent 40%),
+        linear-gradient(135deg, var(--pink), color-mix(in srgb, var(--pink) 60%, var(--lilac)));
+      color: #fff;
+      box-shadow: 0 8px 0 var(--pink-deep), 0 18px 30px -12px rgba(233,95,140,.6);
+    }
+    .sign::before, .sign::after {
+      content: ""; position: absolute; top: 12px; width: 10px; height: 10px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff, #c9d3dc 60%, #8b98a5);
+    }
+    .sign::before { left: 14px; } .sign::after { right: 14px; }
+    .sign .occupied {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,.18); border-radius: 999px; padding: 4px 12px 4px 6px;
+      font-weight: 800; font-size: .78rem; letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .sign .occupied i { width: 14px; height: 14px; border-radius: 50%; background: #ff4d4d; box-shadow: 0 0 10px #ff4d4d; animation: pulse 1.6s infinite; }
+    @keyframes pulse { 50% { opacity: .45; } }
+    .sign h1 { font-size: clamp(2.1rem, 9vw, 3rem); margin: 8px 0 2px; line-height: 1; text-shadow: 0 3px 0 rgba(0,0,0,.12); }
+    .sign p { margin: 6px 0 0; font-weight: 700; opacity: .95; }
+
+    .hello { margin: 22px 0 8px; }
+    .hello .bubble { margin-bottom: 46px; }
+
+    .stats {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+      margin: 4px 0 18px; font-weight: 800; color: var(--ink-soft); font-size: .92rem;
+    }
+    .stats span { background: var(--card); padding: 6px 12px; border-radius: 999px; box-shadow: var(--shadow); }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card {
+      --c: var(--mint);
+      position: relative;
+      display: flex; flex-direction: column; align-items: flex-start;
+      text-decoration: none; color: var(--ink);
+      padding: 14px 14px 12px;
+      border-radius: var(--radius);
+      background:
+        radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--c) 30%, transparent), transparent 60%),
+        var(--card);
+      border: 2px solid var(--card-edge);
+      box-shadow: var(--shadow), inset 0 -4px 0 color-mix(in srgb, var(--c) 40%, transparent);
+      min-height: 172px;
+      overflow: hidden;
+      transition: transform .18s cubic-bezier(.3,1.6,.5,1);
+      animation: card-in .5s cubic-bezier(.2,1.3,.4,1) both;
+    }
+    .card:nth-child(2) { animation-delay: .05s } .card:nth-child(3) { animation-delay: .1s }
+    .card:nth-child(4) { animation-delay: .15s } .card:nth-child(5) { animation-delay: .2s }
+    .card:nth-child(6) { animation-delay: .25s }
+    @keyframes card-in { from { transform: translateY(24px) scale(.9); opacity: 0; } }
+    .card:active { transform: scale(.94) rotate(-1deg); }
+    .card::after { /* brillo de cerámica */
+      content: ""; position: absolute; top: -40%; left: -30%; width: 60%; height: 180%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+      transform: rotate(20deg); pointer-events: none;
+    }
+    .card .emoji {
+      font-size: 2.6rem; line-height: 1; display: inline-block;
+      filter: drop-shadow(0 4px 4px rgba(0,0,0,.12));
+      animation: wobble 2.8s ease-in-out infinite;
+    }
+    .card:nth-child(even) .emoji { animation-delay: -1.2s; }
+    .card h2 { font-size: 1.12rem; margin: 10px 0 2px; line-height: 1.15; }
+    .card p { margin: 0; font-size: .84rem; color: var(--ink-soft); line-height: 1.3; flex: 1; }
+    .card .meta { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .card .tag {
+      font-size: .72rem; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+      background: color-mix(in srgb, var(--c) 22%, transparent);
+      color: color-mix(in srgb, var(--c) 45%, var(--ink));
+    }
+    .c-pink { --c: var(--pink); } .c-yellow { --c: var(--yellow-deep); } .c-blue { --c: var(--blue); }
+    .c-lilac { --c: var(--lilac); } .c-mint { --c: var(--mint); } .c-orange { --c: #ff9f5a; }
+
+    .wide { grid-column: 1 / -1; }
+    .tip {
+      margin-top: 22px; text-align: center; color: var(--ink-soft); font-size: .88rem; font-weight: 700;
+    }
+    .tip b { color: var(--ink); }
+
+    @media (min-width: 520px) { .grid { gap: 18px; } .card { min-height: 190px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <button class="icon-btn" id="theme" aria-label="Cambiar tema">🌙</button>
+      <button class="icon-btn" id="mute" aria-label="Silenciar">🔊</button>
+    </div>
+
+    <header class="sign">
+      <div class="occupied"><i></i> Ocupado</div>
+      <h1>Juegos de Baño</h1>
+      <p>Mini juegos para jugar con una mano 🧻</p>
+    </header>
+
+    <div class="mascot hello" id="hello"></div>
+
+    <div class="stats" id="stats"></div>
+
+    <main class="grid" id="grid">
+      <a class="card c-mint" href="games/lluvia-papel.html" data-id="lluvia">
+        <span class="emoji">🧻</span>
+        <h2>Lluvia de Papel</h2>
+        <p>Atrapa los rollos con el inodoro. ¡Cuidado con lo marrón!</p>
+        <div class="meta"><span class="tag">⚡ Reflejos</span><span class="tag best"></span></div>
+      </a>
+      <a class="card c-blue" href="games/cadena-perfecta.html" data-id="cadena">
+        <span class="emoji">🚽</span>
+        <h2>¡Cadena Perfecta!</h2>
+        <p>Jala la cadena justo a tiempo. La zona se encoge…</p>
+        <div class="meta"><span class="tag">⏱ Timing</span><span class="tag best"></span></div>
+      </a>
+      <a class="card c-lilac" href="games/burbujas.html" data-id="burbujas">
+        <span class="emoji">🫧</span>
+        <h2>Burbujas de Jabón</h2>
+        <p>Revienta burbujas, rescata patitos y evita las de olor.</p>
+        <div class="meta"><span class="tag">⚡ Reflejos</span><span class="tag best"></span></div>
+      </a>
+      <a class="card c-pink" href="games/memorama.html" data-id="memorama">
+        <span class="emoji">🪥</span>
+        <h2>Memorama del Botiquín</h2>
+        <p>Abre los espejitos y encuentra las parejas.</p>
+        <div class="meta"><span class="tag">🧩 Puzzle</span><span class="tag best"></span></div>
+      </a>
+      <a class="card c-orange" href="games/tuberia.html" data-id="tuberia">
+        <span class="emoji">🔧</span>
+        <h2>Desatasca la Tubería</h2>
+        <p>Gira los tubos para que el agua llegue al desagüe.</p>
+        <div class="meta"><span class="tag">🧩 Puzzle</span><span class="tag best"></span></div>
+      </a>
+      <a class="card c-yellow" href="games/trivia.html" data-id="trivia">
+        <span class="emoji">🧠</span>
+        <h2>Trivia del Trono</h2>
+        <p>Preguntas rápidas y palabras revueltas.</p>
+        <div class="meta"><span class="tag">💬 Palabras</span><span class="tag best"></span></div>
+      </a>
+    </main>
+
+    <p class="tip">Consejo de Don Rollo: <b>lávate las manos</b> al terminar. Y el celular también. 🧼</p>
+  </div>
+
+  <script>
+    (function () {
+      const B = window.Bano;
+      const phrases = [
+        "¿Otra partidita? Nadie tiene prisa…",
+        "Bienvenido a tu oficina favorita.",
+        "Si alguien toca la puerta: «¡Ocupado!»",
+        "Un juego más y salgo. Lo prometo.",
+        "Juega rápido: las piernas se duermen.",
+        "Aquí se piensa mejor. Científicamente*.",
+        "Pss… ¿ya viste si queda papel?",
+      ];
+      const moods = ["happy", "wink", "wow"];
+      const hello = document.getElementById("hello");
+      function say() {
+        hello.innerHTML = B.mascot(B.pick(moods)) + '<div class="bubble">' + B.pick(phrases) + "</div>";
+      }
+      say();
+      hello.addEventListener("click", () => { B.sfx.plop(); say(); });
+
+      // Récords
+      const fmt = {
+        lluvia: (v) => v + " pts", cadena: (v) => v + " pts", burbujas: (v) => v + " pts",
+        memorama: (v) => v + " mov.", tuberia: (v) => v + " niveles", trivia: (v) => v + " pts",
+      };
+      document.querySelectorAll(".card").forEach((card) => {
+        const id = card.dataset.id;
+        const b = B.best(id);
+        const tag = card.querySelector(".best");
+        if (b === null) tag.textContent = "✨ Nuevo";
+        else tag.textContent = "🏆 " + fmt[id](b);
+        card.addEventListener("click", () => B.sfx.flush());
+      });
+
+      const total = B.totalPlays();
+      const played = ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia"].filter((id) => B.best(id) !== null).length;
+      document.getElementById("stats").innerHTML =
+        `<span>🚪 ${total} ${total === 1 ? "visita" : "visitas"}</span><span>🏅 ${played}/6 juegos probados</span>`;
+
+      // Tema
+      const themeBtn = document.getElementById("theme");
+      const root = document.documentElement;
+      const isDark = () => {
+        const t = root.getAttribute("data-theme");
+        if (t) return t === "dark";
+        return window.matchMedia("(prefers-color-scheme: dark)").matches;
+      };
+      const paint = () => { themeBtn.textContent = isDark() ? "☀️" : "🌙"; };
+      paint();
+      themeBtn.addEventListener("click", () => {
+        const next = isDark() ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        B.store.set("theme", next);
+        B.sfx.click(); paint();
+      });
+    })();
+  </script>
+</body>
+</html>
