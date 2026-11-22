@@ -21,7 +21,7 @@ jobs:
       - name: Copiar el sitio a gh-pages
         run: |
           mkdir -p "$RUNNER_TEMP/site"
-          cp -r index.html css js games .nojekyll "$RUNNER_TEMP/site/"
+          cp -r index.html css js games ninos grandes .nojekyll "$RUNNER_TEMP/site/"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin gh-pages || true

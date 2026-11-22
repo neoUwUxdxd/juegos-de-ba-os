@@ -1,0 +1,137 @@
+/* Menús con puertas de cubículo (menú principal y Zona Grandes) */
+.wrap { max-width: 560px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 16px 40px; }
+
+/* Letrero de entrada */
+.entry {
+  background: var(--black); color: var(--white);
+  border: 3px solid var(--black);
+  border-radius: var(--r);
+  box-shadow: 6px 6px 0 var(--yellow);
+  padding: 12px 16px 14px;
+  position: relative;
+}
+:root[data-theme="dark"] .entry { border-color: var(--yellow); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .entry { border-color: var(--yellow); } }
+.entry-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: .7rem; letter-spacing: .12em; color: var(--yellow); }
+.entry .tools { display: flex; gap: 8px; }
+.entry .icon-btn { --hud-ink: var(--yellow); }
+.entry h1 { font-size: clamp(3.4rem, 19vw, 5.4rem); margin: 10px 0 8px; color: var(--yellow); font-stretch: 62%; }
+.entry .people { display: flex; gap: 4px; color: var(--white); height: 46px; }
+.entry .people i { width: 40px; height: 46px; display: block; }
+.entry .status {
+  margin-top: 12px; width: fit-content;
+  display: flex; align-items: center; gap: 7px;
+  font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+  border: 2px solid var(--white); border-radius: 3px; padding: 4px 8px;
+}
+.entry .led { width: 10px; height: 10px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: led 1.4s steps(1) infinite; }
+@keyframes led { 50% { opacity: .35; } }
+
+/* Flecha de señalética */
+.wayfind {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 22px 0 12px;
+  background: var(--yellow); color: var(--black);
+  border: 3px solid var(--line); border-radius: 3px;
+  padding: 6px 12px;
+  font-stretch: 72%; font-weight: 900; font-size: 1.15rem; text-transform: uppercase;
+}
+
+/* Puertas */
+.doors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.door {
+  --c: var(--yellow);
+  display: flex; flex-direction: column;
+  text-decoration: none; color: var(--ink);
+  background: var(--paper);
+  border: 3px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.door:active { transform: translate(4px, 4px); box-shadow: none; }
+.door-top {
+  display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  background: var(--c);
+  border-bottom: 3px solid var(--line);
+  padding: 6px 8px;
+}
+.door .num {
+  font-family: var(--font-mono); font-weight: 700; font-size: 1.35rem; line-height: 1;
+  background: var(--white); color: var(--black);
+  border: 2px solid var(--black); border-radius: 3px; padding: 2px 5px;
+}
+/* Cerrojo LIBRE / OCUPADO */
+.lock {
+  width: 66px; height: 22px; overflow: hidden; flex: none;
+  border: 2px solid var(--black); border-radius: 11px; background: var(--black);
+}
+.lock .slide { display: flex; width: 200%; height: 100%; transition: transform .3s cubic-bezier(.6,0,.4,1); }
+.lock b {
+  width: 50%; display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: .58rem; letter-spacing: .04em; color: #fff;
+}
+.lock b:first-child { background: var(--green); }
+.lock b:last-child { background: var(--red); }
+.door.occupied .lock .slide { transform: translateX(-50%); }
+
+.door-pic { width: 70px; height: 70px; margin: 14px auto 8px; }
+.door h2 { font-size: 1.45rem; margin: 0 10px; text-align: center; flex: 1; display: grid; place-items: center; }
+.door-meta {
+  display: flex; justify-content: space-between; gap: 6px;
+  margin-top: 10px; padding: 6px 8px;
+  border-top: 2px dashed color-mix(in srgb, var(--line) 45%, transparent);
+  font-family: var(--font-mono); font-size: .68rem; font-weight: 700; text-transform: uppercase;
+}
+.door-meta .best { color: var(--ink); }
+
+/* Zonas infantiles */
+.zone {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px;
+  min-height: 88px;
+  padding: 12px 14px 12px 12px;
+  text-decoration: none; color: var(--black);
+  border: 3px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--shadow);
+  position: relative; overflow: hidden;
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.zone:active { transform: translate(4px, 4px); box-shadow: none; }
+.zone-peques { background: var(--white); padding-left: 30px; }
+.zone-stripes { position: absolute; left: 0; top: 0; bottom: 0; width: 18px; display: flex; flex-direction: column; border-right: 3px solid var(--black); }
+.zone-stripes i { flex: 1; }
+.zone-stripes i:nth-child(1) { background: var(--red); } .zone-stripes i:nth-child(2) { background: var(--yellow); }
+.zone-stripes i:nth-child(3) { background: var(--green); } .zone-stripes i:nth-child(4) { background: var(--blue); }
+.zone-grandes { background: var(--blue); color: var(--white); }
+.zone-age {
+  position: absolute; right: 50px; top: 8px;
+  background: var(--yellow); color: var(--black); border: 2px solid var(--black);
+  font-weight: 700; font-size: .78rem; padding: 1px 6px; border-radius: 3px;
+}
+.zone-pic {
+  width: 60px; height: 60px; flex: none;
+  background: var(--white); border: 3px solid var(--black); border-radius: 50%;
+  padding: 6px;
+}
+.zone-text { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.zone-text b { font-stretch: 70%; font-weight: 900; font-size: 1.7rem; text-transform: uppercase; line-height: .95; }
+.zone-text small { font-family: var(--font-mono); font-size: .72rem; font-weight: 700; text-transform: uppercase; opacity: .85; }
+.zone-arrow { font-size: 1.6rem; font-weight: 700; }
+
+/* Personal de limpieza */
+.staff { margin: 26px 0 8px; cursor: pointer; }
+
+/* Lávese las manos */
+.wash {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 18px;
+  background: var(--blue); color: var(--white);
+  border: 3px solid var(--line); border-radius: var(--r);
+  padding: 12px 14px;
+}
+.wash-pic { width: 52px; height: 52px; flex: none; background: var(--white); border-radius: 50%; border: 3px solid var(--black); padding: 5px; }
+.wash b { display: block; font-stretch: 70%; font-weight: 900; font-size: 1.35rem; text-transform: uppercase; line-height: 1; }
+.wash small { font-family: var(--font-mono); font-size: .75rem; }
+
+@media (min-width: 520px) { .doors { gap: 18px; } .door h2 { font-size: 1.6rem; } }

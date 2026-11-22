@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Pixel Azulejo</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .studio { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 12px 16px max(14px, env(safe-area-inset-bottom)); max-width: 480px; width: 100%; margin: 0 auto; min-height: 0; overflow-y: auto; }
+    .canvas-wrap { width: min(100%, calc(100dvh - 330px)); min-width: 240px; aspect-ratio: 1; margin: 0 auto; border: 4px solid var(--line); box-shadow: var(--shadow-lg); touch-action: none; background: #fff; }
+    .canvas-wrap canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+    .palette { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+    .sw { aspect-ratio: 1; border: 3px solid var(--line); border-radius: 4px; cursor: pointer; padding: 0; }
+    .sw.on { outline: 3px solid var(--line); outline-offset: 2px; transform: scale(.9); }
+    .tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .tool { appearance: none; cursor: pointer; aspect-ratio: 1.2; padding: 8px; background: var(--paper); border: 3px solid var(--line); border-radius: 5px; box-shadow: 3px 3px 0 var(--line); display: grid; place-items: center; }
+    .tool .pic { width: 100%; height: 100%; max-width: 34px; }
+    .tool.on { background: var(--yellow); }
+    .tool:active { transform: translate(3px, 3px); box-shadow: none; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G4</span>Pixel azulejo</div>
+    
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="studio">
+    <div class="canvas-wrap" id="wrap"><canvas id="cv" width="320" height="320"></canvas></div>
+    <div class="palette" id="pal"></div>
+    <div class="tools">
+      <button class="tool on" id="tPen" aria-label="Lápiz"><i data-sprite="pencil"></i></button>
+      <button class="tool" id="tFill" aria-label="Cubeta de relleno"><i data-sprite="bucket"></i></button>
+      <button class="tool" id="tUndo" aria-label="Deshacer"><i data-sprite="undo"></i></button>
+      <button class="tool" id="tClear" aria-label="Borrar todo"><i data-sprite="trash"></i></button>
+      <button class="tool" id="tSave" aria-label="Descargar como imagen"><i data-sprite="download"></i></button>
+    </div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G4</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="grid"></i></span><div><h2>Pixel azulejo</h2><p>Cada azulejo es un píxel. Dibuja lo que quieras: aquí no se gana ni se pierde.</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Elige un color y pinta tocando o arrastrando el dedo.</span></li>
+          <li><b>2</b><span>La cubeta <span class="ico"><i data-sprite="bucket"></i></span> rellena una zona del mismo color. El blanco sirve de borrador.</span></li>
+          <li><b>3</b><span>Deshacer <span class="ico"><i data-sprite="undo"></i></span>, borrar todo <span class="ico"><i data-sprite="trash"></i></span> y descargar tu obra como imagen <span class="ico"><i data-sprite="download"></i></span>.</span></li>
+          <li><b>4</b><span>Tu dibujo se guarda solo en este celular.</span></li>
+        </ol>
+        <div class="actions"><button class="btn red" id="go">A dibujar</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const N = 16, cv = $("cv"), ctx = cv.getContext("2d");
+  const COLORS = ["#FFFFFF", "#111111", "#FFD400", "#E4312B", "#1E5BC6", "#1F9D55", "#F28C28", "#8A5A2E", "#F49AC1", "#BFE0FF", "#9CC24A", "#A9B3BB", "#F6C9A0", "#7B3FA0", "#5C666E", "#F4F1E8"];
+  let grid = B.store.get("pixel:grid", null);
+  if (!Array.isArray(grid) || grid.length !== N * N) grid = Array(N * N).fill(0);
+  let color = 1, tool = "pen", history = [], painting = false, lastCell = -1;
+  const save = () => B.store.set("pixel:grid", grid);
+  function draw() {
+    const s = cv.width / N;
+    for (let i = 0; i < N * N; i++) { ctx.fillStyle = COLORS[grid[i]]; ctx.fillRect((i % N) * s, Math.floor(i / N) * s, s, s); }
+    ctx.strokeStyle = "rgba(17,17,17,.18)"; ctx.lineWidth = 1;
+    for (let i = 1; i < N; i++) { ctx.beginPath(); ctx.moveTo(i * s + .5, 0); ctx.lineTo(i * s + .5, cv.height); ctx.moveTo(0, i * s + .5); ctx.lineTo(cv.width, i * s + .5); ctx.stroke(); }
+  }
+  function cellAt(e) {
+    const r = cv.getBoundingClientRect();
+    const x = Math.floor((e.clientX - r.left) / r.width * N), y = Math.floor((e.clientY - r.top) / r.height * N);
+    return x < 0 || y < 0 || x >= N || y >= N ? -1 : y * N + x;
+  }
+  function pushHistory() { history.push(grid.slice()); if (history.length > 40) history.shift(); }
+  function fill(i) {
+    const target = grid[i]; if (target === color) return;
+    const st = [i];
+    while (st.length) {
+      const c = st.pop(); if (grid[c] !== target) continue;
+      grid[c] = color;
+      const x = c % N, y = Math.floor(c / N);
+      if (x > 0) st.push(c - 1); if (x < N - 1) st.push(c + 1); if (y > 0) st.push(c - N); if (y < N - 1) st.push(c + N);
+    }
+  }
+  $("wrap").addEventListener("pointerdown", (e) => {
+    const i = cellAt(e); if (i < 0) return;
+    e.preventDefault(); pushHistory();
+    if (tool === "fill") { fill(i); B.sfx.plop(); draw(); save(); return; }
+    painting = true; lastCell = i; grid[i] = color; B.sfx.click(); draw();
+    $("wrap").setPointerCapture(e.pointerId);
+  });
+  $("wrap").addEventListener("pointermove", (e) => {
+    if (!painting) return;
+    const i = cellAt(e); if (i < 0 || i === lastCell) return;
+    lastCell = i; grid[i] = color; draw();
+  });
+  const stop = () => { if (painting) { painting = false; save(); } };
+  $("wrap").addEventListener("pointerup", stop); $("wrap").addEventListener("pointercancel", stop);
+  $("pal").innerHTML = COLORS.map((c, i) => `<button class="sw${i === color ? " on" : ""}" style="background:${c}" data-i="${i}" aria-label="Color ${i + 1}"></button>`).join("");
+  $("pal").addEventListener("click", (e) => {
+    const b = e.target.closest(".sw"); if (!b) return;
+    color = +b.dataset.i; B.sfx.click();
+    document.querySelectorAll(".sw").forEach((s) => s.classList.toggle("on", s === b));
+  });
+  const setTool = (t) => { tool = t; $("tPen").classList.toggle("on", t === "pen"); $("tFill").classList.toggle("on", t === "fill"); B.sfx.click(); };
+  $("tPen").addEventListener("click", () => setTool("pen"));
+  $("tFill").addEventListener("click", () => setTool("fill"));
+  $("tUndo").addEventListener("click", () => { if (history.length) { grid = history.pop(); draw(); save(); B.sfx.swish(); } });
+  $("tClear").addEventListener("click", () => { pushHistory(); grid = Array(N * N).fill(0); draw(); save(); B.sfx.flush(); FX.toast("Lienzo limpio"); });
+  $("tSave").addEventListener("click", () => {
+    const out = document.createElement("canvas"); const s = 24; out.width = out.height = N * s;
+    const o = out.getContext("2d");
+    for (let i = 0; i < N * N; i++) { o.fillStyle = COLORS[grid[i]]; o.fillRect((i % N) * s, Math.floor(i / N) * s, s, s); }
+    out.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "pixel-azulejo.png";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      FX.toast("Imagen descargada");
+      B.saveScore("pixel", 0);
+    }, "image/png");
+  });
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); });
+  draw();
+  Sprites.favicon("grid");
+})();
+</script>
+</body>
+</html>

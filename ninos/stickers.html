@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Stickers</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/kids.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <script src="../js/kids.js"></script>
+  <style>
+    .scene {
+      position: relative; flex: 1; margin: 14px 16px 10px; overflow: hidden; touch-action: none;
+      border: 4px solid #111; border-radius: 22px; box-shadow: var(--shadow);
+      background-color: #fff;
+      background-image: linear-gradient(#111 2px, transparent 2px), linear-gradient(90deg, #111 2px, transparent 2px);
+      background-size: 52px 52px; background-position: -1px -1px;
+    }
+    .scene .window { position: absolute; right: 8%; top: 8%; width: 28%; aspect-ratio: 1; background: #BFE0FF; border: 4px solid #111; border-radius: 8px;
+      background-image: linear-gradient(#111, #111), linear-gradient(#111, #111); background-size: 4px 100%, 100% 4px; background-position: center; background-repeat: no-repeat; }
+    .scene .tubpic { position: absolute; left: 4%; right: 4%; bottom: -6%; height: 58%; pointer-events: none; }
+    .scene .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 12%; background: var(--yellow); border-top: 4px solid #111; }
+    .st { position: absolute; left: 0; top: 0; width: 76px; height: 76px; z-index: 2; touch-action: none; cursor: grab; }
+    .st.drag { z-index: 5; filter: drop-shadow(4px 4px 0 rgba(0,0,0,.35)); }
+    .tray { display: flex; gap: 10px; overflow-x: auto; padding: 4px 16px 16px; touch-action: pan-x; }
+    .tray button { flex: none; width: 74px; height: 74px; padding: 8px; background: #fff; border: 4px solid #111; border-radius: 16px; box-shadow: 4px 4px 0 #111; cursor: pointer; touch-action: none; }
+    .tools { display: flex; justify-content: space-between; align-items: center; padding: 0 16px; }
+  </style>
+</head>
+<body class="kids">
+<div class="page game-page">
+  <header class="kbar">
+    <a class="khome" href="index.html" aria-label="Volver a la Zona Peques"><i data-sprite="home"></i></a>
+    <div class="ktitle"><small>Decora el baño</small>Stickers</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="scene" id="scene"><span class="window"></span><span class="floor"></span><span class="tubpic"><i data-sprite="tub"></i></span></div>
+  <div class="tools"><span class="kcap">Arrastra un sticker al baño</span><button class="kbtn small white" id="clear" style="min-height:52px"><i data-sprite="trash"></i></button></div>
+  <div class="tray" id="tray"></div>
+</div>
+<script>
+(function () {
+  const B = Bano, K = Kids, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const scene = $("scene"), tray = $("tray");
+  const kinds = ["duck", "fish", "frog", "star", "heart", "bubble", "soap", "cat", "dog", "chick", "roll", "toothbrush", "balloon", "teddy"];
+  let placed = B.store.get("kids:stickers", []);
+  const save = () => B.store.set("kids:stickers", placed.map(({ k, x, y, r }) => ({ k, x, y, r })));
+  tray.innerHTML = kinds.map((k) => `<button data-k="${k}" aria-label="Sticker">${Sprites.svg(k)}</button>`).join("");
+
+  function makeSticker(item) {
+    const el = document.createElement("div");
+    el.className = "st"; el.innerHTML = Sprites.svg(item.k);
+    scene.appendChild(el);
+    item.el = el; position(item);
+    el.addEventListener("pointerdown", (e) => startDrag(e, item));
+    return el;
+  }
+  function position(item) {
+    const W = scene.clientWidth, H = scene.clientHeight;
+    item.el.style.transform = `translate(${item.x * W - 38}px, ${item.y * H - 38}px) rotate(${item.r}deg)`;
+  }
+  function startDrag(e, item) {
+    e.preventDefault();
+    const rect = scene.getBoundingClientRect();
+    item.el.classList.add("drag");
+    item.el.setPointerCapture && item.el.setPointerCapture(e.pointerId);
+    const move = (ev) => {
+      item.x = B.clamp((ev.clientX - rect.left) / rect.width, 0, 1);
+      item.y = B.clamp((ev.clientY - rect.top) / rect.height, 0, 1);
+      position(item);
+    };
+    const up = (ev) => {
+      item.el.removeEventListener("pointermove", move);
+      item.el.removeEventListener("pointerup", up);
+      item.el.removeEventListener("pointercancel", up);
+      item.el.classList.remove("drag");
+      const inside = ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom;
+      if (!inside) { item.el.remove(); placed = placed.filter((p) => p !== item); }
+      else { B.sfx.plop(); B.vibrate(10); }
+      save();
+    };
+    move(e);
+    item.el.addEventListener("pointermove", move);
+    item.el.addEventListener("pointerup", up);
+    item.el.addEventListener("pointercancel", up);
+  }
+  tray.querySelectorAll("button").forEach((b) => b.addEventListener("pointerdown", (e) => {
+    const item = { k: b.dataset.k, x: 0.5, y: 0.5, r: B.rand(-14, 14) };
+    placed.push(item);
+    makeSticker(item);
+    B.sfx.click();
+    startDrag(e, item);
+  }));
+  placed.forEach(makeSticker);
+  window.addEventListener("resize", () => placed.forEach(position));
+  $("clear").addEventListener("click", () => {
+    placed.forEach((p) => p.el && p.el.remove()); placed = []; save();
+    B.sfx.swish(); K.say("¡Todo limpio!");
+  });
+  Sprites.favicon("heart");
+})();
+</script>
+</body>
+</html>

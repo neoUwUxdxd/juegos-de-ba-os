@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Cuenta patitos</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/kids.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <script src="../js/kids.js"></script>
+  <style>
+    .lake {
+      position: relative; flex: 1; margin: 14px 16px 16px;
+      background: var(--blue); border: 4px solid #111; border-radius: 22px; box-shadow: var(--shadow);
+      display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr);
+      padding: 10px; gap: 4px;
+    }
+    .cell { display: grid; place-items: center; min-height: 0; }
+    .duckb {
+      position: relative; appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+      width: min(100%, 96px); aspect-ratio: 1;
+    }
+    .duckb .pic { width: 100%; height: 100%; }
+    .duckb .badge {
+      position: absolute; right: -4px; top: -6px; width: 40px; height: 40px; border-radius: 50%;
+      background: var(--yellow); border: 3px solid #111; color: #111;
+      font-family: var(--font-mono); font-weight: 700; font-size: 1.3rem; display: none; place-items: center;
+    }
+    .duckb.on .badge { display: grid; }
+    .duckb.on .pic { filter: drop-shadow(0 0 0 #fff); }
+    .total {
+      position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+    }
+    .total b {
+      font-family: var(--font-mono); font-size: 9rem; line-height: 1; color: #111;
+      background: var(--yellow); border: 6px solid #111; border-radius: 24px; padding: 4px 30px; box-shadow: 8px 8px 0 #111;
+      animation: pulse-big .6s ease-in-out 2;
+    }
+    .total[hidden] { display: none; }
+    .hint { text-align: center; margin: 8px 16px 0; }
+  </style>
+</head>
+<body class="kids">
+<div class="page game-page">
+  <header class="kbar">
+    <a class="khome" href="index.html" aria-label="Volver a la Zona Peques"><i data-sprite="home"></i></a>
+    <div class="ktitle"><small>Cuenta conmigo</small>Patitos</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="kcap hint" id="hint">Toca cada patito para contarlo</div>
+  <div class="lake" id="lake"></div>
+  <div class="total" id="total" hidden><b id="totalN">0</b></div>
+</div>
+<script>
+(function () {
+  const B = Bano, K = Kids, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const lake = $("lake");
+  let round = 0, n = 0, counted = 0, locked = false;
+  function next() {
+    round++;
+    n = round <= 9 ? round + 1 : B.randInt(3, 10);
+    counted = 0; locked = false;
+    $("total").hidden = true;
+    const cells = B.shuffle([...Array(12).keys()]).slice(0, n);
+    lake.innerHTML = "";
+    for (let i = 0; i < 12; i++) {
+      const c = document.createElement("div"); c.className = "cell";
+      if (cells.includes(i)) {
+        const d = document.createElement("button");
+        d.className = "duckb"; d.setAttribute("aria-label", "Patito");
+        d.innerHTML = Sprites.svg("duck") + '<span class="badge"></span>';
+        d.style.transform = `rotate(${B.rand(-10, 10)}deg)`;
+        if (Math.random() < 0.5) d.querySelector(".pic").style.transform = "scaleX(-1)";
+        d.addEventListener("click", () => count(d));
+        c.appendChild(d);
+      }
+      lake.appendChild(c);
+    }
+    K.say(n === 1 ? "¿Cuántos patitos hay?" : "¡Vamos a contar los patitos!");
+  }
+  function count(d) {
+    if (locked || d.classList.contains("on")) return;
+    counted++;
+    d.classList.add("on");
+    d.querySelector(".badge").textContent = counted;
+    d.querySelector(".pic").classList.add("hop");
+    K.say(K.numWords[counted], { rate: 1 });
+    K.animalSounds.duck();
+    if (counted === n) {
+      locked = true;
+      setTimeout(() => {
+        $("totalN").textContent = n; $("total").hidden = false;
+        K.cheer(n === 1 ? "¡Es un patito!" : "¡Son " + K.numWords[n] + " patitos!");
+      }, 700);
+      setTimeout(next, 3800);
+    }
+  }
+  next();
+  Sprites.favicon("duck");
+})();
+</script>
+</body>
+</html>

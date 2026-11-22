@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Zona Peques</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/kids.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <script src="../js/kids.js"></script>
+  <style>
+    .hub { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 18px 16px 24px; max-width: 560px; margin: 0 auto; width: 100%; }
+    .tile {
+      --c: var(--yellow);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      aspect-ratio: 1; padding: 12px;
+      background: var(--c); color: #111; text-decoration: none;
+      border: 4px solid var(--line); border-radius: 20px; box-shadow: var(--shadow);
+      transition: transform .08s linear, box-shadow .08s linear;
+    }
+    .tile:active { transform: translate(5px, 5px); box-shadow: none; }
+    .tile .bub { width: 64%; aspect-ratio: 1; background: #fff; border: 4px solid #111; border-radius: 50%; padding: 12%; }
+    .tile b { font-stretch: 75%; font-weight: 900; font-size: 1.25rem; text-transform: uppercase; line-height: 1; text-align: center; }
+    .tile.blue, .tile.red, .tile.green { color: #fff; }
+    .tile.blue { --c: var(--blue); } .tile.red { --c: var(--red); } .tile.green { --c: var(--green); } .tile.white { --c: #fff; }
+    .tile.wide { grid-column: 1 / -1; aspect-ratio: auto; flex-direction: row; justify-content: flex-start; padding: 14px 18px; gap: 16px; }
+    .tile.wide .bub { width: 96px; flex: none; padding: 14px; }
+    .tile.wide b { font-size: 2rem; text-align: left; }
+    .tile.wide b small { display: block; font-family: var(--font-mono); font-size: .72rem; font-weight: 700; margin-top: 6px; }
+    .hello { max-width: 560px; margin: 0 auto; padding: 18px 16px 0; width: 100%; }
+    .parents { max-width: 560px; margin: 0 auto; padding: 0 16px 30px; width: 100%; color: var(--ink-soft); font-size: .9rem; line-height: 1.4; }
+    .parents b { color: var(--ink); }
+  </style>
+</head>
+<body class="kids">
+<div class="page">
+  <header class="kbar">
+    
+    <button class="hold" id="exit" aria-label="Mantén presionado para salir"><span>Mantén para salir</span></button>
+    <div class="ktitle"><small>3–7 años</small>Peques</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="hello mascot" id="hello"></div>
+  <main class="hub">
+    <a class="tile wide" href="estrellas.html" data-say="¡Mis estrellas!"><span class="bub"><i data-sprite="star"></i></span><b>Mis estrellas<small>¿Fuiste al baño? ¡Gana una!</small></b></a>
+    <a class="tile blue" href="respira.html" data-say="Respira con Don Rollo"><span class="bub"><i data-sprite="balloon"></i></span><b>Respira</b></a>
+    <a class="tile green" href="burbujas.html" data-say="¡Burbujas!"><span class="bub"><i data-sprite="frog"></i></span><b>Burbujas</b></a>
+    <a class="tile white" href="contar.html" data-say="Cuenta los patitos"><span class="bub"><i data-sprite="duck"></i></span><b>Patitos</b></a>
+    <a class="tile red" href="stickers.html" data-say="¡Stickers!"><span class="bub"><i data-sprite="heart"></i></span><b>Stickers</b></a>
+    <a class="tile wide blue" href="manos.html" data-say="¡A lavarse las manos!"><span class="bub"><i data-sprite="hand"></i></span><b>Lávate las manos<small>20 segundos con espuma</small></b></a>
+  </main>
+  <p class="parents"><b>Para papás:</b> aquí no se pierde ni hay prisa. Todo se entiende con dibujos y voz. Para volver a los juegos de adultos, <b>mantén presionado</b> el botón de arriba.</p>
+</div>
+<script>
+(function () {
+  const B = Bano, K = Kids, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  $("hello").innerHTML = B.mascot("happy") + '<div class="say"><small>Don Rollo</small>¡Hola! ¿A qué jugamos mientras haces popó?</div>';
+  $("hello").addEventListener("click", () => K.say("¡Hola! ¿A qué jugamos?"));
+  document.querySelectorAll(".tile").forEach((t) => t.addEventListener("click", (e) => {
+    e.preventDefault();
+    K.say(t.dataset.say);
+    B.sfx.plop();
+    t.classList.add("hop");
+    setTimeout(() => { location.href = t.getAttribute("href"); }, 650);
+  }));
+  K.hold($("exit"), 1500, () => { location.href = "../index.html"; });
+  Sprites.favicon("duck");
+})();
+</script>
+</body>
+</html>

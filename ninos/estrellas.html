@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Mis estrellas</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/kids.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <script src="../js/kids.js"></script>
+  <style>
+    .wrapk { max-width: 520px; margin: 0 auto; width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    .chart { padding: 0; overflow: hidden; }
+    .chart-head { display: flex; justify-content: space-between; align-items: center; background: var(--black); color: var(--yellow); padding: 8px 14px; font-family: var(--font-mono); font-weight: 700; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; }
+    .slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 14px; }
+    .slot { aspect-ratio: 1; border: 3px dashed var(--line); border-radius: 12px; display: grid; place-items: center; padding: 8%; position: relative; }
+    .slot .n { position: absolute; left: 4px; top: 2px; font-family: var(--font-mono); font-size: .65rem; font-weight: 700; color: var(--ink-soft); }
+    .slot.on { border-style: solid; background: #FFF3B0; }
+    .slot.on .pic { animation: hop .5s ease-out; }
+    .go { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .go .kbtn { flex-direction: column; min-height: 150px; font-size: 1.6rem; }
+    .go .kbtn .pic { width: 74px; height: 74px; }
+    .fly { position: fixed; width: 64px; height: 64px; z-index: 40; pointer-events: none; transition: transform .6s cubic-bezier(.3,.7,.3,1); }
+    .trophies { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 44px; }
+    .trophies .t { width: 40px; height: 40px; }
+    .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .win { text-align: center; }
+    .win .big { width: 150px; height: 150px; margin: 6px auto; animation: pulse-big 1s ease-in-out infinite; }
+  </style>
+</head>
+<body class="kids">
+<div class="page">
+  <header class="kbar">
+    <a class="khome" href="index.html" aria-label="Volver a la Zona Peques"><i data-sprite="home"></i></a>
+    <div class="ktitle"><small>Tabla de premios</small>Mis estrellas</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="wrapk">
+    <section class="kplate chart">
+      <div class="chart-head"><span>Mi tabla</span><span id="count">0/10</span></div>
+      <div class="slots" id="slots"></div>
+    </section>
+    <div class="kcap">¿Fuiste al baño? ¡Toca uno!</div>
+    <div class="go">
+      <button class="kbtn blue" id="pee"><i data-sprite="drop"></i>Pipí</button>
+      <button class="kbtn brown" id="poo"><i data-sprite="poop"></i>Popó</button>
+    </div>
+    <div class="kcap">Mis trofeos</div>
+    <div class="trophies" id="trophies"></div>
+    <div class="foot"><span class="kcap">Para papás</span><button class="hold" id="reset"><span>Mantén para borrar la tabla</span></button></div>
+  </div>
+  <div class="overlay" id="winBox">
+    <div class="panel win">
+      <div class="panel-head"><span>¡Felicidades!</span><span>10/10</span></div>
+      <div class="panel-body">
+        <div class="big"><i data-sprite="trophy"></i></div>
+        <h2>¡Diez estrellas!</h2>
+        <p>Ganaste un trofeo. ¡Eres un campeón del baño!</p>
+        <div class="actions"><button class="kbtn green" id="again">Nueva tabla</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  const B = Bano, K = Kids, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const slotsEl = $("slots");
+  let stars = B.store.get("kids:stars", 0), trophies = B.store.get("kids:trophies", 0), busy = false;
+  function render() {
+    slotsEl.innerHTML = Array.from({ length: 10 }, (_, i) =>
+      `<div class="slot${i < stars ? " on" : ""}"><span class="n">${i + 1}</span>${i < stars ? Sprites.svg("star") : ""}</div>`).join("");
+    $("count").textContent = stars + "/10";
+    $("trophies").innerHTML = trophies ? Array.from({ length: Math.min(trophies, 12) }, () => '<span class="t">' + Sprites.svg("trophy") + "</span>").join("") + (trophies > 12 ? '<b class="mono">+' + (trophies - 12) + "</b>" : "")
+      : '<span class="kcap">Todavía ninguno. ¡Tú puedes!</span>';
+  }
+  function earn(btn, what) {
+    if (busy || stars >= 10) return;
+    busy = true;
+    const from = btn.getBoundingClientRect();
+    const target = slotsEl.children[stars].getBoundingClientRect();
+    const fly = document.createElement("div");
+    fly.className = "fly"; fly.innerHTML = Sprites.svg("star");
+    fly.style.left = from.left + from.width / 2 - 32 + "px"; fly.style.top = from.top + from.height / 2 - 32 + "px";
+    document.body.appendChild(fly);
+    B.sfx.gold();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const s = target.width / 64;
+      fly.style.transform = `translate(${target.left + target.width / 2 - (from.left + from.width / 2)}px, ${target.top + target.height / 2 - (from.top + from.height / 2)}px) scale(${s})`;
+    }));
+    setTimeout(() => {
+      fly.remove();
+      stars++; B.store.set("kids:stars", stars); render();
+      FX.bubbles(target.left + target.width / 2, target.top + target.height / 2, 12);
+      if (stars >= 10) { K.cheer("¡Lo lograste! ¡Diez estrellas! Ganaste un trofeo."); B.overlay("winBox", true); }
+      else K.say(B.pick(["¡Muy bien! Una estrella por " + what + ".", "¡Bravo! Ya tienes " + K.numWords[stars] + " estrellas.", "¡Súper! ¡Una estrella más!"]));
+      setTimeout(() => { busy = false; }, 1200);
+    }, 650);
+  }
+  $("pee").addEventListener("click", (e) => earn(e.currentTarget, "hacer pipí"));
+  $("poo").addEventListener("click", (e) => earn(e.currentTarget, "hacer popó"));
+  $("again").addEventListener("click", () => {
+    trophies++; stars = 0;
+    B.store.set("kids:trophies", trophies); B.store.set("kids:stars", 0);
+    B.overlay("winBox", false); render(); K.say("¡Tabla nueva! A ganar más estrellas.");
+  });
+  K.hold($("reset"), 2000, () => { stars = 0; B.store.set("kids:stars", 0); render(); FX.toast("Tabla borrada"); });
+  if (stars >= 10) B.overlay("winBox", true);
+  render();
+  Sprites.favicon("star");
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Respira</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/kids.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <script src="../js/kids.js"></script>
+  <style>
+    body.kids { background-color: #BFE0FF; }
+    .scene { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 14px 16px 20px; gap: 12px; text-align: center; }
+    .pick { display: flex; flex-direction: column; gap: 14px; width: min(100%, 420px); }
+    .pick .kbtn { justify-content: flex-start; }
+    .pick .kbtn b { font-family: var(--font-mono); font-size: 2.2rem; margin-left: auto; }
+    .balloon-wrap { position: relative; width: min(70vw, 300px); aspect-ratio: 1; display: grid; place-items: center; }
+    .balloon { width: 100%; height: 100%; transform: scale(.55); transition: transform 4s ease-in-out; transform-origin: 50% 80%; }
+    .balloon.in { transform: scale(1); }
+    .phase {
+      font-stretch: 70%; font-weight: 900; font-size: 3rem; text-transform: uppercase; line-height: 1;
+      background: var(--black); color: var(--yellow); border-radius: 12px; padding: 6px 18px;
+    }
+    .phase.out { background: var(--white); color: var(--black); border: 4px solid var(--black); }
+    .timer { display: flex; align-items: center; gap: 10px; width: min(100%, 420px); }
+    .timer .roll { width: 54px; height: 54px; flex: none; }
+    .timer .strip { flex: 1; height: 26px; border: 4px solid var(--black); border-radius: 8px; background: var(--white); overflow: hidden; }
+    .timer .strip i { display: block; height: 100%; background: repeating-linear-gradient(90deg, #fff 0 20px, #ddd 20px 22px); border-right: 3px solid #111; transition: width 1s linear; }
+    .row { display: flex; gap: 12px; width: min(100%, 420px); }
+    .row .kbtn { flex: 1; }
+    .mini { display: flex; align-items: flex-end; gap: 8px; }
+    .mini svg.rollo { width: 70px; height: 84px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body class="kids">
+<div class="page">
+  <header class="kbar">
+    <a class="khome" href="index.html" aria-label="Volver a la Zona Peques"><i data-sprite="home"></i></a>
+    <div class="ktitle"><small>Con Don Rollo</small>Respira</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="scene" id="choose">
+    <div class="mascot mini"><span id="rollo1"></span><div class="say"><small>Don Rollo</small>Vamos a respirar tranquilos mientras haces popó. ¿Cuánto rato?</div></div>
+    <div class="pick">
+      <button class="kbtn white" data-min="1"><i data-sprite="clock"></i>Poquito<b>1</b></button>
+      <button class="kbtn yellow" data-min="2"><i data-sprite="clock"></i>Normal<b>2</b></button>
+      <button class="kbtn blue" data-min="3"><i data-sprite="clock"></i>Largo<b>3</b></button>
+    </div>
+  </div>
+  <div class="scene" id="breathe" hidden>
+    <div class="phase" id="phase">Inhala</div>
+    <div class="balloon-wrap"><div class="balloon" id="balloon"><i data-sprite="balloon"></i></div></div>
+    <div class="timer"><span class="roll"><i data-sprite="roll"></i></span><span class="strip"><i id="left" style="width:100%"></i></span></div>
+    <div class="row"><button class="kbtn small white" id="stop">Terminé</button></div>
+  </div>
+  <div class="scene" id="done" hidden>
+    <div class="mascot mini"><span id="rollo2"></span><div class="say"><small>Don Rollo</small>¡Lo hiciste muy bien! Respiraste como un campeón.</div></div>
+    <div class="row"><button class="kbtn green" id="again">Otra vez</button></div>
+    <div class="row"><a class="kbtn small white" href="index.html">Volver</a></div>
+  </div>
+</div>
+<script>
+(function () {
+  const B = Bano, K = Kids, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  $("rollo1").innerHTML = B.mascot("happy");
+  $("rollo2").innerHTML = B.mascot("wow");
+  const show = (id) => ["choose", "breathe", "done"].forEach((s) => { $(s).hidden = s !== id; });
+  let total = 0, left = 0, phaseIn = true, cycles = 0, tick = 0, swap = 0;
+  function setPhase() {
+    $("balloon").classList.toggle("in", phaseIn);
+    $("phase").textContent = phaseIn ? "Inhala" : "Exhala";
+    $("phase").classList.toggle("out", !phaseIn);
+    if (cycles < 6) K.say(phaseIn ? "Inhala… despacito" : "Exhala… sopla el globo", { rate: 0.85 });
+    else B.tone(phaseIn ? 392 : 262, 0.6, { type: "sine", vol: 0.06 });
+  }
+  function start(min) {
+    total = left = min * 60; phaseIn = true; cycles = 0;
+    show("breathe"); setPhase();
+    clearInterval(tick); clearInterval(swap);
+    swap = setInterval(() => { phaseIn = !phaseIn; if (phaseIn) cycles++; setPhase(); }, 4000);
+    tick = setInterval(() => {
+      left--; $("left").style.width = Math.max(0, left / total * 100) + "%";
+      if (left <= 0) finish();
+    }, 1000);
+  }
+  function finish() {
+    clearInterval(tick); clearInterval(swap);
+    show("done"); K.cheer("¡Muy bien! Respiraste como un campeón.");
+  }
+  document.querySelectorAll("[data-min]").forEach((b) => b.addEventListener("click", () => { B.sfx.click(); start(+b.dataset.min); }));
+  $("stop").addEventListener("click", finish);
+  $("again").addEventListener("click", () => show("choose"));
+  Sprites.favicon("balloon");
+})();
+</script>
+</body>
+</html>
