@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Mate-Retrete</title>
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#1D3B4F">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -19,16 +19,16 @@
     .board { flex: 1; min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; position: relative; }
     .board .tag { position: absolute; left: 0; top: 0; right: 0; display: flex; justify-content: space-between; background: var(--black); color: var(--yellow); padding: 6px 12px; font-family: var(--font-mono); font-size: .72rem; font-weight: 700; letter-spacing: .1em; }
     .q { font-family: var(--font-mono); font-weight: 700; font-size: clamp(2.4rem, 13vw, 3.6rem); line-height: 1; margin-top: 18px; }
-    .ans { min-width: 140px; text-align: center; font-family: var(--font-mono); font-weight: 700; font-size: clamp(2rem, 11vw, 3rem); border-bottom: 5px solid var(--line); padding: 0 10px; min-height: 1.2em; }
+    .ans { min-width: 140px; text-align: center; font-family: var(--font-mono); font-weight: 700; font-size: clamp(2rem, 11vw, 3rem); border-bottom: 2px solid var(--line); padding: 0 10px; min-height: 1.2em; }
     .board.ok { background: var(--green); color: #fff; } .board.ko { background: var(--red); color: #fff; animation: shake .3s steps(4); }
     .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .key {
       appearance: none; cursor: pointer; min-height: 60px;
-      background: var(--paper); color: var(--ink); border: 3px solid var(--line); border-radius: 5px; box-shadow: 3px 3px 0 var(--line);
+      background: var(--paper); color: var(--ink); border: 2px solid var(--line); border-radius: 5px; box-shadow: var(--shadow);
       font-family: var(--font-mono); font-weight: 700; font-size: 1.7rem;
     }
     .key:active { transform: translate(3px, 3px); box-shadow: none; }
-    .key.alt { background: var(--yellow); color: #111; font-size: 1rem; }
+    .key.alt { background: var(--yellow); color: #1D3B4F; font-size: 1rem; }
     .key.neg { background: var(--blue); color: #fff; font-size: 1.4rem; }
   </style>
 </head>
