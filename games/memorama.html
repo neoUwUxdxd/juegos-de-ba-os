@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Memorama del Botiquín</title>
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#1D3B4F">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -19,7 +19,7 @@
       padding: 12px;
       border-radius: 4px;
       background: var(--white);
-      border: 3px solid var(--black);
+      border: 2px solid var(--line);
       box-shadow: var(--shadow-lg);
       position: relative;
     }
@@ -30,7 +30,7 @@
         linear-gradient(#fff, #fff) center / 20px 6px no-repeat,
         linear-gradient(#fff, #fff) center / 6px 20px no-repeat,
         var(--red);
-      border: 3px solid #111;
+      border: 2px solid var(--line);
     }
     .board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .card { aspect-ratio: 3 / 4; perspective: 700px; cursor: pointer; border: 0; padding: 0; background: none; }
@@ -40,7 +40,7 @@
       transition: transform .35s cubic-bezier(.4,0,.2,1);
     }
     .card.open .inner, .card.done .inner { transform: rotateY(180deg); }
-    .face { position: absolute; inset: 0; border-radius: 3px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; border: 3px solid #111; }
+    .face { position: absolute; inset: 0; border-radius: 3px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; border: 2px solid var(--line); }
     .front {
       /* Puertita con espejo */
       background:
@@ -49,7 +49,7 @@
     }
     .front::after { /* manija */
       content: ""; position: absolute; right: 5px; top: 50%; width: 6px; height: 22%; margin-top: -11%;
-      border-radius: 2px; background: #A9B3BB; border: 2px solid #111;
+      border-radius: 2px; background: #A9B3BB; border: 2px solid #1D3B4F;
     }
     .back { transform: rotateY(180deg); background: var(--c, #fff); padding: 14%; }
     .card.done .back { border-color: var(--green); box-shadow: inset 0 0 0 3px var(--green); }
@@ -91,7 +91,7 @@
   const movesEl = document.getElementById("moves"), timeEl = document.getElementById("time");
   const items = ["toothbrush", "soap", "sponge", "bottle", "razor", "tub", "duck", "roll", "bandage", "pill", "comb", "teddy"];
   const names = { toothbrush: "Cepillo", soap: "Jabón", sponge: "Esponja", bottle: "Champú", razor: "Rastrillo", tub: "Tina", duck: "Patito", roll: "Papel", bandage: "Curita", pill: "Pastilla", comb: "Peine", teddy: "Osito" };
-  const colors = ["#FFD400", "#FFFFFF", "#F4F1E8", "#FFE680", "#FFFFFF", "#F4F1E8", "#FFD400", "#FFFFFF"];
+  const colors = ["#F0BF45", "#FFFFFF", "#F4F1E8", "#FFE680", "#FFFFFF", "#F4F1E8", "#F0BF45", "#FFFFFF"];
 
   let first = null, lock = false, moves = 0, found = 0, t0 = 0, timer = 0, playing = false;
 

@@ -4,7 +4,7 @@
    ========================================================= */
 (function () {
   "use strict";
-  const K = "#111", W = "#FFFFFF", Y = "#FFD400", R = "#E4312B", B = "#1E5BC6", G = "#1F9D55";
+  const K = "#1D3B4F", W = "#FFFFFF", Y = "#F0BF45", R = "#E7685A", B = "#2F9FC4", G = "#3BAA8C";
   const O = "#F28C28", BR = "#8A5A2E", MT = "#A9B3BB", PK = "#F49AC1", SK = "#F6C9A0", LB = "#BFE0FF", CB = "#C9A77C";
 
   // Cada pictograma: contenido SVG en un lienzo de 64×64
@@ -105,7 +105,7 @@
     child: `<circle cx="32" cy="20" r="6" fill="currentColor" stroke="none"/><path d="M23 29h18v15h-4v18h-5V48h0v14h-5V44h-4z" fill="currentColor" stroke="none"/>`,
   };
 
-  const ATTR = `stroke="${K}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`;
+  const ATTR = `stroke="${K}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"`;
   function svg(name, cls) {
     const body = P[name] || P.question;
     return `<svg class="pic${cls ? " " + cls : ""}" viewBox="0 0 64 64" ${ATTR} aria-hidden="true" focusable="false">${body}</svg>`;

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Lluvia de Papel</title>
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#1D3B4F">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -193,23 +193,20 @@
   function draw() {
     ctx.clearRect(0, 0, S.w, S.h);
 
-    // Piso con franja de peligro
+    // Piso de azulejo
     const floorY = player.y + 30;
-    ctx.fillStyle = "#111";
-    ctx.fillRect(0, floorY, S.w, S.h - floorY);
-    ctx.save();
-    ctx.beginPath(); ctx.rect(0, floorY, S.w, 12); ctx.clip();
-    ctx.fillStyle = "#FFD400"; ctx.fillRect(0, floorY, S.w, 12);
-    ctx.fillStyle = "#111";
-    for (let x = -12; x < S.w + 12; x += 24) { ctx.beginPath(); ctx.moveTo(x, floorY + 12); ctx.lineTo(x + 12, floorY); ctx.lineTo(x + 24, floorY); ctx.lineTo(x + 12, floorY + 12); ctx.fill(); }
-    ctx.restore();
-
+    ctx.fillStyle = "#C7D5DA"; ctx.fillRect(0, floorY, S.w, S.h - floorY);
+    for (let x = 0; x < S.w; x += 44) for (let y = floorY + 3; y < S.h; y += 44) {
+      ctx.fillStyle = ((x / 44 + Math.round((y - floorY) / 44)) % 2) ? "#FFFFFF" : "#DDEFF5";
+      ctx.fillRect(x + 3, y, 41, 41);
+    }
+    ctx.fillStyle = "#1F4E6B"; ctx.fillRect(0, floorY, S.w, 4);
     for (const it of items) {
       if (it.kind === "gold") {
         ctx.save();
         ctx.translate(it.x, it.y); ctx.rotate(t * 2);
-        ctx.setLineDash([6, 6]); ctx.lineWidth = 3; ctx.strokeStyle = "#111";
-        ctx.fillStyle = "#FFD400";
+        ctx.setLineDash([6, 6]); ctx.lineWidth = 3; ctx.strokeStyle = "#1D3B4F";
+        ctx.fillStyle = "#F0BF45";
         ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         ctx.restore();
       }
@@ -218,7 +215,7 @@
     }
     for (const s of sparkles) {
       ctx.globalAlpha = s.life;
-      ctx.fillStyle = "#FFD400"; ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5;
+      ctx.fillStyle = "#F0BF45"; ctx.strokeStyle = "#1D3B4F"; ctx.lineWidth = 1.5;
       ctx.fillRect(s.x - 4, s.y - 4, 8, 8); ctx.strokeRect(s.x - 4, s.y - 4, 8, 8);
     }
     ctx.globalAlpha = 1;
@@ -236,7 +233,7 @@
     if (combo >= 3) {
       ctx.font = '700 13px "IBM Plex Mono", monospace';
       ctx.textAlign = "center";
-      ctx.fillStyle = "#FFD400";
+      ctx.fillStyle = "#1F4E6B";
       ctx.fillText("COMBO " + combo, player.x, floorY + 30);
     }
   }

@@ -7,16 +7,16 @@
 
   // Don Rollo: rollo de papel con carita, estilo pictograma. mood: happy | sad | wow | wink
   function mascot(mood) {
-    const S = 'stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"';
+    const S = 'stroke="#1D3B4F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"';
     const mouths = {
-      happy: `<path d="M34 55h16c0 6-4 9-8 9s-8-3-8-9z" fill="#E4312B" ${S}/>`,
+      happy: `<path d="M34 55h16c0 6-4 9-8 9s-8-3-8-9z" fill="#E7685A" ${S}/>`,
       sad: `<path d="M35 61q7-7 14 0" fill="none" ${S}/>`,
-      wow: `<rect x="38" y="53" width="8" height="10" rx="4" fill="#E4312B" ${S}/>`,
+      wow: `<rect x="38" y="53" width="8" height="10" rx="4" fill="#E7685A" ${S}/>`,
       wink: `<path d="M35 56q7 6 14 0" fill="none" ${S}/>`,
     };
     const leftEye = mood === "wink"
       ? `<path d="M28 45h8" ${S}/>`
-      : '<rect class="eye" x="29" y="40" width="6" height="9" rx="1" fill="#111"/>';
+      : '<rect class="eye" x="29" y="40" width="6" height="9" rx="1" fill="#1D3B4F"/>';
     const brows = mood === "sad" ? `<path d="M27 35l9 3M57 35l-9 3" ${S}/>` : "";
     const arms = mood === "happy" || mood === "wow"
       ? `<path d="M10 52 2 38M74 52l8-14" ${S} stroke-width="4"/>`
@@ -25,13 +25,13 @@
       ${arms}
       <path d="M56 84h26v12l-4-3-4 3-4-3-4 3-4-3-6 3z" fill="#fff" ${S}/>
       <path d="M10 16v64a32 9 0 0 0 64 0V16" fill="#fff" ${S}/>
-      <path d="M20 28v48" stroke="#111" stroke-width="2" stroke-dasharray="3 7" opacity=".25"/>
+      <path d="M20 28v48" stroke="#1D3B4F" stroke-width="2" stroke-dasharray="3 7" opacity=".25"/>
       <ellipse cx="42" cy="16" rx="32" ry="9" fill="#fff" ${S}/>
       <ellipse cx="42" cy="16" rx="11" ry="3.6" fill="#C9A77C" ${S} stroke-width="2.5"/>
-      <rect x="6" y="70" width="72" height="8" fill="#FFD400" stroke="#111" stroke-width="3"/>
+      <rect x="6" y="70" width="72" height="8" fill="#F0BF45" stroke="#1D3B4F" stroke-width="3"/>
       ${brows}
       ${leftEye}
-      <rect class="eye" x="49" y="40" width="6" height="9" rx="1" fill="#111"/>
+      <rect class="eye" x="49" y="40" width="6" height="9" rx="1" fill="#1D3B4F"/>
       ${mouths[mood] || mouths.happy}
     </svg>`;
   }
@@ -62,7 +62,7 @@
     if (reduced()) return;
     n = n || 8;
     const L = getLayer();
-    const cols = ["#FFD400", "#E4312B", "#1E5BC6", "#1F9D55", "#FFFFFF"];
+    const cols = ["#F0BF45", "#E7685A", "#2F9FC4", "#3BAA8C", "#FFFFFF"];
     for (let i = 0; i < n; i++) {
       const el = document.createElement("div");
       el.className = "spark";
@@ -95,7 +95,7 @@
     const W = window.innerWidth, H = window.innerHeight;
     c.width = W * dpr; c.height = H * dpr;
     const x = c.getContext("2d"); x.scale(dpr, dpr);
-    const colors = ["#FFFFFF", "#FFD400", "#E4312B", "#1E5BC6", "#1F9D55"];
+    const colors = ["#FFFFFF", "#F0BF45", "#E7685A", "#2F9FC4", "#3BAA8C"];
     const parts = Array.from({ length: 110 }, () => ({
       x: W / 2 + (Math.random() - 0.5) * 80, y: H * 0.35,
       vx: (Math.random() - 0.5) * 12, vy: -6 - Math.random() * 10,
@@ -116,7 +116,7 @@
         x.globalAlpha = Math.max(0, 1 - el / duration);
         x.fillStyle = p.c;
         x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        x.strokeStyle = "#111"; x.lineWidth = 1.5;
+        x.strokeStyle = "#1D3B4F"; x.lineWidth = 1.5;
         x.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
         x.restore();
       }
