@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Lávate las manos</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/kids.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <script src="../js/kids.js"></script>
+  <style>
+    .sink { position: relative; flex: 1; margin: 12px 16px; overflow: hidden; touch-action: none;
+      background: #BFE0FF; border: 4px solid #111; border-radius: 22px; box-shadow: var(--shadow); }
+    .hands { position: absolute; inset: 12% 8% 18%; display: flex; justify-content: center; align-items: center; gap: 2%; pointer-events: none; }
+    .hands .h { width: 46%; max-width: 200px; aspect-ratio: 1; }
+    .hands .h.l { transform: scaleX(-1) rotate(8deg); } .hands .h.r { transform: rotate(8deg); }
+    .rub .hands .h.l { animation: rubl .3s ease-in-out infinite alternate; }
+    .rub .hands .h.r { animation: rubr .3s ease-in-out infinite alternate; }
+    @keyframes rubl { to { transform: scaleX(-1) rotate(8deg) translate(-10px, 6px); } }
+    @keyframes rubr { to { transform: rotate(8deg) translate(-10px, -6px); } }
+    .foam { position: absolute; border-radius: 50%; background: #fff; border: 3px solid #111; pointer-events: none; transition: opacity 1.5s, transform 1.5s; }
+    .rinse .foam { opacity: 0; transform: translateY(160px) scale(.4); }
+    .drop { position: absolute; top: -60px; width: 40px; height: 40px; pointer-events: none; animation: fall 1s linear forwards; }
+    @keyframes fall { to { transform: translateY(120vh); } }
+    .big-n { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none;
+      font-family: var(--font-mono); font-weight: 700; font-size: 2.4rem; background: var(--yellow); border: 4px solid #111; border-radius: 14px; padding: 0 16px; }
+    .msg { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
+      background: var(--black); color: var(--yellow); border-radius: 12px; padding: 6px 14px;
+      font-stretch: 72%; font-weight: 900; font-size: 1.6rem; text-transform: uppercase; }
+    .paper-bar { margin: 0 16px 6px; height: 26px; }
+    .end { display: none; gap: 12px; padding: 0 16px 16px; }
+    .end.show { display: flex; }
+    .end .kbtn { flex: 1; min-height: 72px; font-size: 1.3rem; }
+  </style>
+</head>
+<body class="kids">
+<div class="page game-page">
+  <header class="kbar">
+    <a class="khome" href="index.html" aria-label="Volver a la Zona Peques"><i data-sprite="home"></i></a>
+    <div class="ktitle"><small>20 segundos</small>Lávate las manos</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="sink" id="sink">
+    <div class="hands"><span class="h l"><i data-sprite="hand"></i></span><span class="h r"><i data-sprite="hand"></i></span></div>
+    <div class="msg" id="msg">¡Frota aquí!</div>
+    <div class="big-n" id="n">20</div>
+  </div>
+  <div class="paper-bar"><i id="bar" style="transform:scaleX(0)"></i></div>
+  <div class="end" id="end"><button class="kbtn green" id="again">Otra vez</button><a class="kbtn white" href="index.html">Volver</a></div>
+</div>
+<script>
+(function () {
+  const B = Bano, K = Kids, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const sink = $("sink"), GOAL = 20;
+  let progress = 0, lastMove = 0, lastX = 0, lastY = 0, dist = 0, done = false, sec = 0, foams = [], last = performance.now(), spoke = false;
+  function reset() {
+    progress = 0; done = false; sec = 0; spoke = false;
+    foams.forEach((f) => f.remove()); foams = [];
+    sink.classList.remove("rinse", "rub");
+    $("msg").textContent = "¡Frota aquí!"; $("n").textContent = GOAL;
+    $("bar").style.transform = "scaleX(0)"; $("end").classList.remove("show");
+  }
+  function addFoam(x, y) {
+    const s = B.rand(24, 64);
+    const f = document.createElement("div");
+    f.className = "foam";
+    f.style.width = f.style.height = s + "px";
+    f.style.left = x - s / 2 + "px"; f.style.top = y - s / 2 + "px";
+    sink.appendChild(f); foams.push(f);
+    if (foams.length > 80) foams.shift().remove();
+  }
+  sink.addEventListener("pointerdown", (e) => {
+    if (done) return;
+    const r = sink.getBoundingClientRect(); lastX = e.clientX - r.left; lastY = e.clientY - r.top;
+    if (!spoke) { K.say("¡Frota, frota tus manitas!"); spoke = true; }
+  });
+  sink.addEventListener("pointermove", (e) => {
+    if (done || !(e.buttons || e.pointerType === "touch")) return;
+    const r = sink.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const d = Math.hypot(x - lastX, y - lastY);
+    if (d > 2) lastMove = performance.now();
+    dist += d; lastX = x; lastY = y;
+    if (dist > 28) { dist = 0; addFoam(x, y); }
+  });
+  function loop(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    const rubbing = !done && now - lastMove < 260;
+    sink.classList.toggle("rub", rubbing);
+    if (rubbing) {
+      progress = Math.min(GOAL, progress + dt);
+      $("bar").style.transform = `scaleX(${progress / GOAL})`;
+      const s = Math.floor(progress);
+      if (s > sec) {
+        sec = s; K.note(s - 1);
+        $("n").textContent = GOAL - s;
+        if (s === 10) K.say("¡Ya casi! ¡Sigue frotando!");
+      }
+      if (progress >= GOAL) rinse();
+    }
+    requestAnimationFrame(loop);
+  }
+  function rinse() {
+    done = true;
+    $("msg").textContent = "¡A enjuagar!"; $("n").textContent = "0";
+    K.say("¡Ahora a enjuagar!");
+    for (let i = 0; i < 24; i++) setTimeout(() => {
+      const d = document.createElement("div"); d.className = "drop"; d.innerHTML = Sprites.svg("drop");
+      d.style.left = B.rand(0, sink.clientWidth - 40) + "px";
+      sink.appendChild(d); setTimeout(() => d.remove(), 1100);
+    }, i * 70);
+    setTimeout(() => sink.classList.add("rinse"), 300);
+    setTimeout(() => {
+      $("msg").textContent = "¡Manos limpias!";
+      K.cheer("¡Manos limpias! ¡Muy bien!");
+      $("end").classList.add("show");
+    }, 2200);
+  }
+  $("again").addEventListener("click", reset);
+  requestAnimationFrame(loop);
+  Sprites.favicon("hand");
+})();
+</script>
+</body>
+</html>

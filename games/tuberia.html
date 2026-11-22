@@ -4,55 +4,52 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Desatasca la Tubería</title>
-  <meta name="theme-color" content="#d8f0ea">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+  <meta name="theme-color" content="#111111">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/common.js"></script>
   <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
   <style>
-    .wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 4px 16px 18px; }
+    .wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 6px 16px 18px; }
     .wall {
       width: min(100%, 470px);
-      padding: 12px;
-      border-radius: 24px;
-      background:
-        linear-gradient(rgba(255,255,255,.7) 2px, transparent 2px) 0 0 / 34px 34px,
-        linear-gradient(90deg, rgba(255,255,255,.7) 2px, transparent 2px) 0 0 / 34px 34px,
-        color-mix(in srgb, #ff9f5a 16%, var(--card));
-      border: 3px solid var(--card-edge);
-      box-shadow: var(--shadow);
+      background: var(--paper);
+      border: 3px solid var(--line); border-radius: 4px;
+      box-shadow: var(--shadow-lg);
     }
-    .level-name { text-align: center; font-family: var(--font-title); font-weight: 600; margin: 0 0 10px; color: var(--ink-soft); }
-    .grid { display: grid; gap: 3px; }
+    .level-name {
+      display: flex; justify-content: space-between; gap: 8px;
+      background: var(--black); color: var(--yellow);
+      padding: 7px 12px; margin: 0 0 12px;
+      font-family: var(--font-mono); font-weight: 700; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+    }
+    .grid { display: grid; gap: 0; margin: 0 12px; background: #111; border: 3px solid #111; }
+    .side { background: var(--paper); display: grid; place-items: center; padding: 3px; }
+    .side .pic { width: 100%; height: auto; aspect-ratio: 1; }
     .tile {
       appearance: none; border: 0; padding: 0; cursor: pointer;
-      aspect-ratio: 1; border-radius: 10px;
-      background: color-mix(in srgb, var(--card) 85%, transparent);
-      box-shadow: inset 0 -3px 0 rgba(35,54,74,.08);
+      aspect-ratio: 1;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px #111;
       position: relative;
     }
-    .tile:active { background: color-mix(in srgb, var(--yellow) 35%, var(--card)); }
-    .tile svg { position: absolute; inset: 0; width: 100%; height: 100%; transition: transform .22s cubic-bezier(.3,1.5,.5,1); }
-    .tile .pipe-out { stroke: #8b98a5; }
-    .tile .pipe-in { stroke: #3c4b5c; transition: stroke .3s; }
-    .tile.wet .pipe-in { stroke: #4fb3ff; }
-    .tile.wet .pipe-out { stroke: #2f8ae0; }
-    .tile.flow .pipe-in { stroke: #7fd0ff; animation: flow .6s ease-out; }
-    @keyframes flow { 50% { stroke: #fff; } }
-    .side { display: grid; place-items: center; font-size: clamp(1.2rem, 6vw, 1.8rem); }
-    .side.src { animation: wobble 2s ease-in-out infinite; }
-    .solved .tile.wet .pipe-in { animation: shimmer 1s ease-in-out infinite; }
-    @keyframes shimmer { 50% { stroke: #c8ecff; } }
-    .hint { text-align: center; color: var(--ink-soft); font-size: .85rem; font-weight: 700; margin-top: 10px; }
+    .tile:active { background: var(--yellow); }
+    .tile svg { position: absolute; inset: 0; width: 100%; height: 100%; transition: transform .16s ease-out; }
+    .tile .pipe-out { stroke: #111; }
+    .tile .pipe-in { stroke: #D9D4C7; transition: stroke .2s; }
+    .tile.wet .pipe-in { stroke: #1E5BC6; }
+    .tile.flow { background: #FFF3B0; }
+    .solved .tile.wet { background: #BFE0FF; }
+    .hint { text-align: center; color: var(--ink-soft); font-family: var(--font-mono); font-size: .72rem; font-weight: 700; margin: 10px 0 12px; text-transform: uppercase; }
   </style>
 </head>
 <body class="game-page">
   <header class="hud">
-    <a class="icon-btn" href="../index.html" aria-label="Volver al menú">🚪</a>
-    <div class="hud-title">🔧 Tubería</div>
+    <a class="icon-btn" href="../index.html" aria-label="Volver al menú"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">05</span>Tubería</div>
     <div class="pill" id="level">Nivel 1</div>
     <button class="icon-btn" id="mute"></button>
   </header>
@@ -69,16 +66,17 @@
 
   <div class="overlay show" id="start">
     <div class="panel">
-      <span class="big-emoji">🔧</span>
-      <h2>Desatasca la Tubería</h2>
-      <p>Un vecino tiró algo raro por el lavabo. ¡Arregla los tubos antes de que se acabe el papel!</p>
-      <div class="howto"><ul>
-        <li>Toca un tubo para girarlo 90°.</li>
-        <li>Conecta el grifo 🚰 con el desagüe 🕳️.</li>
-        <li>Los tubos con agua se ponen azules.</li>
-        <li>Cada nivel resuelto te da +20 segundos.</li>
-      </ul></div>
-      <div class="actions"><button class="btn" id="go">¡Manos a la obra!</button></div>
+      <div class="panel-head"><span>Instrucciones</span><span>Cubículo 05</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="wrench"></i></span><div><h2>Desatasca la tubería</h2><p>Un vecino tiró algo raro por el lavabo. Arregla los tubos antes de que se acabe el papel.</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Toca un tubo para girarlo 90°.</span></li>
+          <li><b>2</b><span>Conecta el grifo <span class="ico"><i data-sprite="faucet"></i></span> con el desagüe <span class="ico"><i data-sprite="drain"></i></span>.</span></li>
+          <li><b>3</b><span>Los tubos con agua se ponen azules.</span></li>
+          <li><b>4</b><span>Cada nivel resuelto te da +20 segundos.</span></li>
+        </ol>
+        <div class="actions"><button class="btn" id="go">Manos a la obra</button></div>
+      </div>
     </div>
   </div>
 
@@ -104,9 +102,9 @@
     for (const d of [N, E, S, W]) if (m & d) arms += `M50,50 L${ends[d]} `;
     const isEnd = [N, E, S, W].filter((d) => m & d).length === 1;
     return `<svg viewBox="0 0 100 100" aria-hidden="true">
-      <path class="pipe-out" d="${arms}" stroke-width="34" stroke-linecap="${isEnd ? "round" : "butt"}" fill="none"/>
-      <circle class="pipe-out" cx="50" cy="50" r="17" fill="currentColor" style="color:#8b98a5" stroke-width="0"/>
-      <path class="pipe-in" d="${arms}" stroke-width="16" stroke-linecap="round" fill="none"/>
+      <path class="pipe-out" d="${arms}" stroke-width="36" stroke-linecap="${isEnd ? "round" : "butt"}" fill="none"/>
+      <circle cx="50" cy="50" r="18" fill="#111"/>
+      <path class="pipe-in" d="${arms}" stroke-width="22" stroke-linecap="square" fill="none"/>
     </svg>`;
   }
 
@@ -150,7 +148,7 @@
     deg = rot.map((row) => row.map((k) => k * 90));
     render();
     levelEl.textContent = "Nivel " + level;
-    levelName.textContent = "🏠 " + names[(level - 1) % names.length];
+    levelName.innerHTML = "<span>" + names[(level - 1) % names.length] + "</span><span>" + rows + "×" + cols + "</span>";
     B.bump(levelEl);
   }
 
@@ -161,7 +159,7 @@
     for (let r = 0; r < rows; r++) {
       const s = document.createElement("div");
       s.className = "side" + (r === srcRow ? " src" : "");
-      s.textContent = r === srcRow ? "🚰" : "";
+      s.innerHTML = r === srcRow ? Sprites.svg("faucet") : "";
       gridEl.appendChild(s);
       tiles.push([]);
       for (let c = 0; c < cols; c++) {
@@ -176,7 +174,7 @@
       }
       const d = document.createElement("div");
       d.className = "side";
-      d.textContent = r === dstRow ? "🕳️" : "";
+      d.innerHTML = r === dstRow ? Sprites.svg("drain") : "";
       gridEl.appendChild(d);
     }
     paintWater();
@@ -259,7 +257,7 @@
     const lv = level - 1;
     B.sfx.bad();
     B.gameOver({
-      id: "tuberia", score: lv, good: lv >= 3,
+      id: "tuberia", num: "05", name: "DESATASCA LA TUBERÍA", score: lv, good: lv >= 3,
       format: (v) => v + (v === 1 ? " nivel" : " niveles"),
       detail: "Llegaste a: " + names[(level - 1) % names.length],
       titles: [
@@ -276,6 +274,7 @@
   document.getElementById("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
   // tablero de muestra detrás de la portada
   level = 0; newLevel(); level = 0; levelEl.textContent = "Nivel 1";
+  Sprites.favicon("wrench");
 })();
 </script>
 </body>

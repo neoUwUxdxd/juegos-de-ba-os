@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>¿Verdad o Popó?</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .area { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 6px 16px max(14px, env(safe-area-inset-bottom)); max-width: 480px; width: 100%; margin: 0 auto; min-height: 0; }
+    .deck { position: relative; flex: 1; min-height: 220px; }
+    .fact {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      background: var(--paper); border: 3px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-lg);
+      touch-action: none; cursor: grab; overflow: hidden;
+    }
+    .fact .tag { display: flex; justify-content: space-between; background: var(--black); color: var(--yellow); padding: 7px 12px; font-family: var(--font-mono); font-size: .72rem; font-weight: 700; letter-spacing: .1em; }
+    .fact h2 { flex: 1; display: grid; place-items: center; text-align: center; margin: 0; padding: 16px; font-size: clamp(1.7rem, 8.5vw, 2.4rem); font-stretch: 78%; line-height: 1.02; }
+    .fact .stamp-v, .fact .stamp-p { position: absolute; top: 46px; padding: 2px 10px; border: 4px solid; border-radius: 6px; font-family: var(--font-sign); font-stretch: 70%; font-weight: 900; font-size: 1.8rem; text-transform: uppercase; opacity: 0; }
+    .fact .stamp-v { left: 14px; color: var(--green); transform: rotate(-12deg); }
+    .fact .stamp-p { right: 14px; color: #8A5A2E; transform: rotate(12deg); }
+    .fact .hint { text-align: center; font-family: var(--font-mono); font-size: .7rem; font-weight: 700; color: var(--ink-soft); padding: 0 0 12px; text-transform: uppercase; }
+    .explain { position: absolute; inset: 0; display: none; flex-direction: column; gap: 10px; padding: 16px; background: var(--paper); border: 3px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-lg); }
+    .explain.show { display: flex; }
+    .explain .verdict { display: flex; align-items: center; gap: 10px; }
+    .explain .verdict .pic { width: 56px; height: 56px; flex: none; }
+    .explain .verdict b { font-stretch: 70%; font-weight: 900; font-size: 2rem; text-transform: uppercase; line-height: 1; }
+    .explain p { margin: 0; font-size: 1.08rem; line-height: 1.4; flex: 1; }
+    .explain .answer { font-family: var(--font-mono); font-weight: 700; font-size: .8rem; text-transform: uppercase; }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .choices .btn { min-height: 70px; justify-content: center; font-size: 1.5rem; }
+    .choices .btn::after { content: none; }
+    .btn.poo { --c: #8A5A2E; --t: #fff; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G3</span>Verdad</div>
+    <div class="pill" id="prog">1/12</div><div class="pill" id="score">0</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="area">
+    <div class="deck" id="deck">
+      <div class="fact" id="card"><div class="tag"><span>¿VERDAD O POPÓ?</span><span id="num">01</span></div><span class="stamp-v" id="sv">Verdad</span><span class="stamp-p" id="sp">Popó</span><h2 id="text"></h2><div class="hint">← Popó · desliza · Verdad →</div></div>
+      <div class="explain" id="explain">
+        <div class="verdict" id="verdict"></div>
+        <div class="answer" id="answer"></div>
+        <p id="why"></p>
+        <button class="btn" id="next">Siguiente</button>
+      </div>
+    </div>
+    <div class="choices"><button class="btn poo" id="bPoo">Popó</button><button class="btn green" id="bTrue">Verdad</button></div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G3</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="check"></i></span><div><h2>¿Verdad o popó?</h2><p>Datos curiosos de ciencia y del cuerpo. Unos son verdad… y otros son puro popó (falsos).</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Lee el dato y decide: <b>VERDAD</b> o <b>POPÓ</b> (falso).</span></li>
+          <li><b>2</b><span>Desliza la tarjeta a la derecha (verdad) o a la izquierda (popó), o usa los botones.</span></li>
+          <li><b>3</b><span>Después te explicamos la respuesta. 12 tarjetas por partida.</span></li>
+        </ol>
+        <div class="actions"><button class="btn green" id="go">Empezar</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  // [dato, ¿es verdad?, explicación]
+  const BANK = [
+    ["Tu corazón late unas 100 000 veces al día.", true, "Late de 60 a 100 veces por minuto. En 24 horas son alrededor de 100 000 latidos."],
+    ["Los pulpos tienen tres corazones.", true, "Dos bombean sangre a las branquias y uno al resto del cuerpo. ¡Y su sangre es azul!"],
+    ["Los uómbats hacen caca en forma de cubo.", true, "Su intestino tiene partes más rígidas y otras más elásticas que le dan esa forma de dado."],
+    ["Los tiburones existían antes que los árboles.", true, "Los primeros tiburones aparecieron hace más de 400 millones de años, antes que los primeros árboles."],
+    ["Los flamencos son rosados por lo que comen.", true, "Comen algas y camarones con pigmentos (carotenoides). Sin ellos, su plumaje se pone pálido."],
+    ["Cada una de tus manos tiene más de 25 huesos.", true, "Cada mano tiene 27 huesos, contando muñeca, palma y dedos."],
+    ["Los koalas tienen huellas dactilares muy parecidas a las humanas.", true, "Son tan parecidas que, vistas al microscopio, cuesta distinguirlas."],
+    ["La caca es café sobre todo por la bilis.", true, "La bilis que ayuda a digerir la grasa se transforma en el intestino en pigmentos de color café."],
+    ["La caca de una persona es mayormente agua.", true, "Alrededor de tres cuartas partes son agua. El resto son bacterias, fibra y restos de comida."],
+    ["El Sol es una estrella.", true, "Es la estrella más cercana a la Tierra. Las otras estrellas también son soles, solo que muy lejanos."],
+    ["La miel bien guardada puede durar muchísimos años sin echarse a perder.", true, "Tiene muy poca agua y es ácida, así que a los microbios les cuesta mucho crecer en ella."],
+    ["El estómago de una vaca tiene cuatro compartimentos.", true, "Rumen, retículo, omaso y abomaso. Así puede digerir el pasto, que es muy duro."],
+    ["En la Estación Espacial, el inodoro usa aire que aspira para que nada flote.", true, "Sin gravedad, todo flotaría. Por eso los inodoros espaciales funcionan con un flujo de aire, como una aspiradora."],
+    ["El agua puede estar como hielo, como líquido y como vapor.", true, "Son sus tres estados: sólido, líquido y gas."],
+    ["Los murciélagos son ciegos.", false, "Los murciélagos sí ven. Muchos además usan ecolocalización: escuchan el eco de sus chillidos para orientarse."],
+    ["Los peces dorados solo recuerdan las cosas por 3 segundos.", false, "En experimentos, los peces dorados recuerdan cosas durante semanas o meses."],
+    ["La Gran Muralla China se ve a simple vista desde la Luna.", false, "Desde la Luna no se ve ninguna construcción humana. La muralla es larga, pero muy angosta."],
+    ["Los humanos solo usamos el 10 % del cerebro.", false, "Usamos todo el cerebro, aunque no todas las partes al mismo tiempo."],
+    ["Los camellos guardan agua en sus jorobas.", false, "La joroba guarda grasa, que les sirve de energía cuando no hay comida."],
+    ["A los toros los enoja el color rojo.", false, "Los toros no distinguen bien el rojo. Lo que los provoca es el movimiento de la capa."],
+    ["Si te tragas un chicle, se queda 7 años en tu estómago.", false, "No se digiere, pero sale del cuerpo en pocos días como cualquier otra cosa."],
+    ["En el hemisferio sur, el agua del inodoro gira al revés por la rotación de la Tierra.", false, "Ese efecto es demasiado débil en algo tan pequeño. El giro depende de la forma del inodoro y de cómo sale el agua."],
+    ["Los avestruces esconden la cabeza en la tierra cuando tienen miedo.", false, "Es un mito. Se agachan para cuidar sus huevos o para esconderse, pero no meten la cabeza en la tierra."],
+    ["Las arañas son insectos.", false, "Son arácnidos: tienen 8 patas. Los insectos tienen 6."],
+    ["Los rayos nunca caen dos veces en el mismo lugar.", false, "Caen muchas veces en el mismo sitio, sobre todo en lugares altos como edificios y antenas."],
+    ["Los pingüinos viven en el Polo Norte.", false, "Casi todos viven en el hemisferio sur: la Antártida, Sudamérica, África y Oceanía."],
+    ["El cabello y las uñas siguen creciendo después de morir.", false, "Parece que crecen porque la piel se seca y se retrae, pero en realidad dejan de crecer."],
+    ["Tocar a un sapo te da verrugas.", false, "Las verrugas las causa un virus humano, no los sapos."],
+  ];
+  const ROUNDS = 12;
+  let deck = [], idx = 0, score = 0, ok = 0, answered = false, drag = null;
+  const card = $("card");
+  function show() {
+    answered = false;
+    const f = deck[idx];
+    $("text").textContent = f[0];
+    $("num").textContent = String(idx + 1).padStart(2, "0") + "/" + ROUNDS;
+    $("prog").textContent = (idx + 1) + "/" + ROUNDS;
+    $("explain").classList.remove("show");
+    card.style.display = "flex";
+    card.style.transition = "none"; card.style.transform = "translate(-40px, 0) rotate(-3deg)"; card.style.opacity = "0";
+    $("sv").style.opacity = 0; $("sp").style.opacity = 0;
+    requestAnimationFrame(() => { card.style.transition = "transform .22s ease-out, opacity .22s"; card.style.transform = ""; card.style.opacity = "1"; });
+  }
+  function answer(saysTrue) {
+    if (answered) return;
+    answered = true;
+    const f = deck[idx], right = saysTrue === f[1];
+    card.style.transition = "transform .25s ease-in, opacity .25s";
+    card.style.transform = `translate(${saysTrue ? 420 : -420}px, 0) rotate(${saysTrue ? 18 : -18}deg)`;
+    card.style.opacity = "0";
+    if (right) { ok++; score += 100; $("score").textContent = score; B.bump($("score")); B.sfx.good(); B.vibrate(12); }
+    else { B.sfx.bad(); B.vibrate(80); }
+    setTimeout(() => {
+      card.style.display = "none";
+      $("verdict").innerHTML = Sprites.svg(right ? "check" : "cross") + `<b>${right ? "¡Correcto!" : "¡Uy, no!"}</b>`;
+      $("answer").textContent = "Respuesta: " + (f[1] ? "verdad" : "popó (falso)");
+      $("why").textContent = f[2];
+      $("explain").classList.add("show");
+    }, 230);
+  }
+  function next() {
+    idx++;
+    if (idx >= ROUNDS) return end();
+    show();
+  }
+  card.addEventListener("pointerdown", (e) => { if (answered) return; drag = { x0: e.clientX, dx: 0 }; card.setPointerCapture(e.pointerId); card.style.transition = "none"; });
+  card.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    drag.dx = e.clientX - drag.x0;
+    card.style.transform = `translate(${drag.dx}px, 0) rotate(${drag.dx / 18}deg)`;
+    $("sv").style.opacity = B.clamp(drag.dx / 90, 0, 1); $("sp").style.opacity = B.clamp(-drag.dx / 90, 0, 1);
+  });
+  const release = () => {
+    if (!drag) return;
+    const dx = drag.dx; drag = null;
+    if (Math.abs(dx) > 90) answer(dx > 0);
+    else { card.style.transition = "transform .2s ease-out"; card.style.transform = ""; $("sv").style.opacity = 0; $("sp").style.opacity = 0; }
+  };
+  card.addEventListener("pointerup", release); card.addEventListener("pointercancel", release);
+  $("bTrue").addEventListener("click", () => answer(true));
+  $("bPoo").addEventListener("click", () => answer(false));
+  $("next").addEventListener("click", () => { B.sfx.click(); next(); });
+  function start() {
+    const t = B.shuffle(BANK.filter((f) => f[1])), fz = B.shuffle(BANK.filter((f) => !f[1]));
+    deck = B.shuffle(t.slice(0, 6).concat(fz.slice(0, 6)));
+    idx = 0; score = 0; ok = 0; $("score").textContent = 0;
+    show();
+  }
+  function end() {
+    B.gameOver({
+      id: "verdad", num: "G3", name: "¿VERDAD O POPÓ?", score, good: ok >= 8, back: "index.html",
+      format: (v) => v + " pts", detail: `${ok}/${ROUNDS} aciertos`,
+      titles: [
+        { min: 1200, t: "Detector de Popó Oficial" },
+        { min: 900, t: "Científico del Inodoro" },
+        { min: 600, t: "Mente Curiosa" },
+        { min: 300, t: "Le Creyó al Primo" },
+        { min: 0, t: "Se Tragó el Chicle" },
+      ],
+      onRetry: start,
+    });
+  }
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
+  Sprites.favicon("check");
+})();
+</script>
+</body>
+</html>

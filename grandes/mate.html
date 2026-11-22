@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Mate-Retrete</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .math { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 6px 16px max(14px, env(safe-area-inset-bottom)); max-width: 480px; width: 100%; margin: 0 auto; min-height: 0; }
+    .board { flex: 1; min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; position: relative; }
+    .board .tag { position: absolute; left: 0; top: 0; right: 0; display: flex; justify-content: space-between; background: var(--black); color: var(--yellow); padding: 6px 12px; font-family: var(--font-mono); font-size: .72rem; font-weight: 700; letter-spacing: .1em; }
+    .q { font-family: var(--font-mono); font-weight: 700; font-size: clamp(2.4rem, 13vw, 3.6rem); line-height: 1; margin-top: 18px; }
+    .ans { min-width: 140px; text-align: center; font-family: var(--font-mono); font-weight: 700; font-size: clamp(2rem, 11vw, 3rem); border-bottom: 5px solid var(--line); padding: 0 10px; min-height: 1.2em; }
+    .board.ok { background: var(--green); color: #fff; } .board.ko { background: var(--red); color: #fff; animation: shake .3s steps(4); }
+    .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .key {
+      appearance: none; cursor: pointer; min-height: 60px;
+      background: var(--paper); color: var(--ink); border: 3px solid var(--line); border-radius: 5px; box-shadow: 3px 3px 0 var(--line);
+      font-family: var(--font-mono); font-weight: 700; font-size: 1.7rem;
+    }
+    .key:active { transform: translate(3px, 3px); box-shadow: none; }
+    .key.alt { background: var(--yellow); color: #111; font-size: 1rem; }
+    .key.neg { background: var(--blue); color: #fff; font-size: 1.4rem; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G2</span>Mate</div>
+    <div class="pill" id="streak">×1</div><div class="pill" id="score">0</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="paper-bar"><i id="bar"></i><b id="barTxt">60s</b></div>
+  <div class="math">
+    <div class="plate board" id="board"><div class="tag"><span id="lvl">NIVEL 1</span><span id="cnt">0 ✓</span></div><div class="q" id="q">7 + 5</div><div class="ans" id="ans"></div></div>
+    <div class="keys" id="keys">
+      <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+      <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+      <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+      <button class="key alt" data-k="del">BORRAR</button><button class="key">0</button><button class="key neg" data-k="neg">−</button>
+    </div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G2</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="calc"></i></span><div><h2>Mate-retrete</h2><p>60 segundos de cuentas rápidas. ¿Cuántas resuelves antes de que se acabe el papel?</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Escribe el resultado con el teclado: se revisa solo.</span></li>
+          <li><b>2</b><span>Empieza fácil y sube de nivel cada 5 aciertos: sumas, restas, tablas…</span></li>
+          <li><b>3</b><span>Seguidas sin fallar multiplican tus puntos.</span></li>
+          <li><b>4</b><span>Si fallas, se borra y pierdes la racha (no el tiempo).</span></li>
+        </ol>
+        <div class="actions"><button class="btn blue" id="go">Empezar</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const TOTAL = 60;
+  let state = "idle", a = 0, b = 0, op = "+", res = 0, typed = "", score = 0, ok = 0, streak = 0, best = 0, time = TOTAL, timer = 0, lastT = 0;
+  const level = () => 1 + Math.floor(ok / 5);
+  function make() {
+    const L = level(), r = B.randInt;
+    const kinds = L === 1 ? ["add1"] : L === 2 ? ["add1", "sub1"] : L === 3 ? ["add2", "sub1", "mul1"] : L === 4 ? ["add2", "sub2", "mul1", "mul2"] : ["add3", "sub2", "mul2", "div", "neg"];
+    const k = B.pick(kinds);
+    if (k === "add1") { a = r(1, 10); b = r(1, 10); op = "+"; res = a + b; }
+    if (k === "sub1") { a = r(5, 20); b = r(1, a); op = "−"; res = a - b; }
+    if (k === "add2") { a = r(10, 60); b = r(5, 39); op = "+"; res = a + b; }
+    if (k === "sub2") { a = r(20, 99); b = r(5, a); op = "−"; res = a - b; }
+    if (k === "mul1") { a = r(2, 5); b = r(1, 10); op = "×"; res = a * b; }
+    if (k === "mul2") { a = r(2, 10); b = r(2, 10); op = "×"; res = a * b; }
+    if (k === "add3") { a = r(50, 250); b = r(25, 250); op = "+"; res = a + b; }
+    if (k === "div") { b = r(2, 10); res = r(2, 10); a = b * res; op = "÷"; }
+    if (k === "neg") { a = r(1, 15); b = r(a + 1, 25); op = "−"; res = a - b; }
+    typed = "";
+    $("q").textContent = `${a} ${op} ${b}`;
+    $("ans").textContent = "";
+    $("lvl").textContent = "NIVEL " + L;
+  }
+  function hud() {
+    $("score").textContent = score; $("cnt").textContent = ok + " ✓";
+    $("streak").textContent = "×" + (1 + Math.floor(streak / 3));
+    $("bar").style.transform = `scaleX(${Math.max(0, time) / TOTAL})`;
+    $("barTxt").textContent = Math.max(0, Math.ceil(time)) + "s";
+  }
+  function check() {
+    const want = String(res);
+    if (typed.length < want.length) return;
+    const board = $("board");
+    if (typed === want) {
+      ok++; streak++; best = Math.max(best, streak);
+      const pts = 10 * (1 + Math.floor(streak / 3)) * level();
+      score += pts;
+      board.classList.remove("ko"); board.classList.add("ok"); B.sfx.good(); B.vibrate(10);
+      const r = board.getBoundingClientRect(); FX.floatText(r.left + r.width / 2, r.top + 30, "+" + pts, "gold");
+      setTimeout(() => { board.classList.remove("ok"); if (state === "play") make(); }, 220);
+    } else {
+      streak = 0; board.classList.remove("ok"); void board.offsetWidth; board.classList.add("ko"); B.sfx.bad(); B.vibrate(60);
+      setTimeout(() => { board.classList.remove("ko"); typed = ""; $("ans").textContent = ""; }, 350);
+    }
+    hud();
+  }
+  function press(k) {
+    if (state !== "play") return;
+    B.sfx.click();
+    if (k === "del") typed = typed.slice(0, -1);
+    else if (k === "neg") { if (!typed) typed = "-"; }
+    else if (typed.length < 5) typed += k;
+    $("ans").textContent = typed.replace("-", "−");
+    if (k !== "del" && k !== "neg") check();
+  }
+  document.querySelectorAll(".key").forEach((el) => el.addEventListener("pointerdown", (e) => { e.preventDefault(); press(el.dataset.k || el.textContent); }));
+  window.addEventListener("keydown", (e) => {
+    if (/^[0-9]$/.test(e.key)) press(e.key);
+    else if (e.key === "Backspace") press("del");
+    else if (e.key === "-") press("neg");
+  });
+  function start() {
+    score = 0; ok = 0; streak = 0; best = 0; time = TOTAL; state = "play";
+    make(); hud();
+    clearInterval(timer); lastT = performance.now();
+    timer = setInterval(() => {
+      const now = performance.now(); time -= Math.min(1, (now - lastT) / 1000); lastT = now;
+      if (time <= 5 && time > 0 && Math.abs(time - Math.round(time)) < 0.11) B.sfx.tick();
+      hud();
+      if (time <= 0) end();
+    }, 100);
+  }
+  function end() {
+    clearInterval(timer); state = "over";
+    B.gameOver({
+      id: "mate", num: "G2", name: "MATE-RETRETE", score, good: ok >= 10, back: "index.html",
+      format: (v) => v + " pts", detail: `${ok} aciertos · racha ${best}`,
+      titles: [
+        { min: 1500, t: "Calculadora con Patas" },
+        { min: 800, t: "Genio de la Cisterna" },
+        { min: 400, t: "Contador de Rollos" },
+        { min: 150, t: "Cuentas con los Dedos" },
+        { min: 0, t: "Se Le Fue el Agua" },
+      ],
+      onRetry: start,
+    });
+  }
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
+  hud();
+  Sprites.favicon("calc");
+})();
+</script>
+</body>
+</html>
