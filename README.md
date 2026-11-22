@@ -29,5 +29,5 @@ python3 -m http.server 8000
 
 ## Publicación
 
-El workflow `.github/workflows/pages.yml` publica el sitio en GitHub Pages cada vez que hay cambios en `main`.
-Si es la primera vez, en **Settings → Pages** elige **Source: GitHub Actions**.
+El sitio se sirve desde la rama `gh-pages`. El workflow `.github/workflows/pages.yml` copia los archivos a esa rama cada vez que hay cambios en `main`.
+Si la página diera 404, en **Settings → Pages** elige **Source: Deploy from a branch → `gh-pages` / `(root)`**.
