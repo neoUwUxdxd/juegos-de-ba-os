@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Aterriza el Trono</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .pad { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 10px; padding: 10px 12px max(14px, env(safe-area-inset-bottom)); background: var(--black); border-top: 4px solid var(--yellow); }
+    .ctl {
+      appearance: none; cursor: pointer; touch-action: none;
+      min-height: 78px; border: 3px solid var(--yellow); border-radius: 6px;
+      background: #1A1A1A; color: var(--yellow); display: grid; place-items: center; padding: 14px;
+      font-family: var(--font-sign); font-stretch: 72%; font-weight: 900; font-size: 1.3rem; text-transform: uppercase;
+    }
+    .ctl .pic { width: 34px; height: 34px; stroke: var(--yellow); }
+    .ctl.on { background: var(--yellow); color: #111; }
+    .ctl.on .pic { stroke: #111; }
+    .ctl.thrust { background: var(--orange); color: #111; border-color: #111; }
+    .ctl.thrust.on { background: var(--yellow); }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G1</span>Aterriza</div>
+    <div class="pill" id="lvl">NIV 1</div><div class="pill" id="lives"></div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="paper-bar"><i id="fuel"></i><b id="fuelTxt">100</b></div>
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+  <div class="pad">
+    <button class="ctl" id="left" aria-label="Girar a la izquierda"><i data-sprite="arrowL"></i></button>
+    <button class="ctl thrust" id="thrust">Propulsor</button>
+    <button class="ctl" id="right" aria-label="Girar a la derecha"><i data-sprite="arrowR"></i></button>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G1</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="rocket"></i></span><div><h2>Aterriza el trono</h2><p>Tu inodoro-cohete se quedó sin piloto automático. Bájalo suave a la plataforma.</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Mantén <b>PROPULSOR</b> para frenar la caída.</span></li>
+          <li><b>2</b><span>Usa las flechas para inclinarte y moverte de lado.</span></li>
+          <li><b>3</b><span>Aterriza en la franja amarilla: despacio y derecho (los números se ponen verdes).</span></li>
+          <li><b>4</b><span>El combustible es papel <span class="ico"><i data-sprite="roll"></i></span>. Cada nivel trae viento y una plataforma más pequeña.</span></li>
+        </ol>
+        <div class="actions"><button class="btn blue" id="go">Despegar</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="pause">
+    <div class="panel">
+      <div class="panel-head"><span>Aviso</span><span>Pausa</span></div>
+      <div class="panel-body">
+        <h2>Juego en pausa</h2>
+        <p>Tranquilo, aquí nadie tiene prisa.</p>
+        <div class="actions"><button class="btn" id="resume">Seguir</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const stage = $("stage"), cv = $("cv");
+  const S = B.fitCanvas(cv, () => { if (state !== "play") draw(); });
+  const ctx = S.ctx;
+  const G = 30, THRUST = 78, ROT = 2.3, SAFE_VY = 55, SAFE_VX = 32, SAFE_A = 0.32;
+  let state = "idle", level = 1, lives = 3, score = 0, fuel = 100, wind = 0, last = 0, pause = 0, t = 0, burnT = 0;
+  const ship = { x: 0, y: 0, vx: 0, vy: 0, a: 0 };
+  const keys = { l: false, r: false, up: false };
+  let pad = { x: 0, w: 140 }, landed = false;
+  const groundY = () => S.h - 34;
+
+  function hud() {
+    $("lvl").textContent = "NIV " + level;
+    $("lives").innerHTML = [0, 1, 2].map((i) => '<span class="ico">' + Sprites.svg(i < lives ? "heart" : "heartEmpty") + "</span>").join("");
+    $("fuel").style.transform = `scaleX(${Math.max(0, fuel) / 100})`;
+    $("fuelTxt").textContent = Math.max(0, Math.round(fuel));
+  }
+  function setup() {
+    pad.w = Math.max(64, 150 - (level - 1) * 12);
+    pad.x = B.rand(pad.w / 2 + 16, S.w - pad.w / 2 - 16);
+    wind = level === 1 ? 0 : B.rand(-1, 1) * Math.min(16, 3 + level * 2);
+    ship.x = B.clamp(pad.x + B.rand(-1, 1) * S.w * 0.35, 40, S.w - 40);
+    ship.y = 100; ship.vx = level > 1 ? B.rand(-18, 18) : 0; ship.vy = 0; ship.a = 0;
+    fuel = 100; landed = false; pause = 0;
+    hud();
+  }
+  function start() {
+    level = 1; lives = 3; score = 0; setup();
+    state = "play"; last = performance.now(); requestAnimationFrame(loop);
+  }
+  function screen(x, y) { const r = cv.getBoundingClientRect(); return [r.left + x, r.top + y]; }
+  function touchdown() {
+    const onPad = Math.abs(ship.x - pad.x) < pad.w / 2 - 8;
+    const ok = onPad && Math.abs(ship.vy) < SAFE_VY && Math.abs(ship.vx) < SAFE_VX && Math.abs(ship.a) < SAFE_A;
+    const [sx, sy] = screen(ship.x, ship.y);
+    landed = true; pause = 1.4;
+    if (ok) {
+      const soft = Math.abs(ship.vy) < 25;
+      const pts = 100 + Math.round(fuel) * 2 + level * 20 + (soft ? 50 : 0);
+      score += pts;
+      FX.floatText(sx, sy - 40, "+" + pts, "gold");
+      if (soft) FX.toast("Aterrizaje de seda");
+      B.sfx.win(); B.vibrate(30);
+      ship.vy = 0; ship.vx = 0; ship.a = 0;
+      level++;
+    } else {
+      lives--;
+      FX.floatText(sx, sy - 40, onPad ? "¡Muy rápido!" : "¡Fuera de la pista!", "bad");
+      FX.bubbles(sx, sy, 18); FX.shake(stage);
+      B.sfx.bad(); B.noise(0.5, { from: 900, to: 80, vol: 0.4 }); B.vibrate(150);
+      ship.crashed = true;
+    }
+    hud();
+  }
+  function loop(now) {
+    if (state !== "play") return;
+    const dt = Math.min(0.033, (now - last) / 1000); last = now; t += dt;
+    if (landed) {
+      pause -= dt;
+      if (pause <= 0) {
+        if (lives <= 0) return end();
+        ship.crashed = false; setup();
+      }
+    } else {
+      if (keys.l) ship.a -= ROT * dt;
+      if (keys.r) ship.a += ROT * dt;
+      ship.a = B.clamp(ship.a, -1.2, 1.2);
+      let ax = wind, ay = G;
+      const burning = keys.up && fuel > 0;
+      if (burning) {
+        ax += Math.sin(ship.a) * THRUST; ay -= Math.cos(ship.a) * THRUST;
+        fuel -= 14 * dt;
+        burnT -= dt; if (burnT <= 0) { B.noise(0.14, { from: 500, to: 200, vol: 0.12 }); burnT = 0.13; }
+      }
+      ship.vx += ax * dt; ship.vy += ay * dt;
+      ship.x += ship.vx * dt; ship.y += ship.vy * dt;
+      if (ship.x < 20) { ship.x = 20; ship.vx = Math.abs(ship.vx) * 0.3; }
+      if (ship.x > S.w - 20) { ship.x = S.w - 20; ship.vx = -Math.abs(ship.vx) * 0.3; }
+      if (ship.y < 24) { ship.y = 24; ship.vy = Math.max(0, ship.vy); }
+      if (ship.y + 24 >= groundY()) { ship.y = groundY() - 24; touchdown(); }
+      if (Math.floor(t * 4) !== Math.floor((t - dt) * 4)) hud();
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+  function draw() {
+    ctx.clearRect(0, 0, S.w, S.h);
+    const gy = groundY();
+    // suelo
+    ctx.fillStyle = "#111"; ctx.fillRect(0, gy, S.w, S.h - gy);
+    // plataforma con franjas
+    const px = pad.x - pad.w / 2;
+    ctx.save(); ctx.beginPath(); ctx.rect(px, gy - 10, pad.w, 10); ctx.clip();
+    ctx.fillStyle = "#FFD400"; ctx.fillRect(px, gy - 10, pad.w, 10); ctx.fillStyle = "#111";
+    for (let x = px - 10; x < px + pad.w + 10; x += 20) { ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x + 10, gy - 10); ctx.lineTo(x + 20, gy - 10); ctx.lineTo(x + 10, gy); ctx.fill(); }
+    ctx.restore();
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 3; ctx.strokeRect(px, gy - 10, pad.w, 10);
+    // viento
+    ctx.font = '700 12px "IBM Plex Mono", monospace'; ctx.textAlign = "right"; ctx.fillStyle = getComputedStyle(document.body).color;
+    if (wind) ctx.fillText("VIENTO " + (wind > 0 ? "→" : "←") + " " + Math.abs(wind).toFixed(0), S.w - 12, 20);
+    // lecturas
+    const okV = Math.abs(ship.vy) < SAFE_VY, okH = Math.abs(ship.vx) < SAFE_VX, okA = Math.abs(ship.a) < SAFE_A;
+    ctx.textAlign = "left";
+    [["VEL ↓", Math.round(ship.vy), okV], ["VEL ↔", Math.round(Math.abs(ship.vx)), okH], ["INCL", Math.round(ship.a * 57) + "°", okA]].forEach(([k, v, ok], i) => {
+      ctx.fillStyle = ok ? "#1F9D55" : "#E4312B"; ctx.fillRect(10, 8 + i * 22, 98, 18);
+      ctx.fillStyle = "#fff"; ctx.fillText(k + " " + v, 15, 21 + i * 22);
+    });
+    // nave
+    ctx.save(); ctx.translate(ship.x, ship.y); ctx.rotate(ship.a);
+    if (keys.up && fuel > 0 && !landed) {
+      const fl = 18 + Math.random() * 14;
+      ctx.fillStyle = "#F28C28"; ctx.strokeStyle = "#111"; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(-10, 22); ctx.lineTo(0, 22 + fl); ctx.lineTo(10, 22); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#FFD400"; ctx.beginPath(); ctx.moveTo(-5, 22); ctx.lineTo(0, 22 + fl * 0.55); ctx.lineTo(5, 22); ctx.fill();
+    }
+    if (ship.crashed) ctx.rotate(1.3);
+    B.drawSprite(ctx, "toilet", 0, 0, 50);
+    ctx.restore();
+  }
+  function end() {
+    state = "over";
+    B.gameOver({
+      id: "aterriza", num: "G1", name: "ATERRIZA EL TRONO", score, good: level > 3, back: "index.html",
+      format: (v) => v + " pts", detail: "Nivel " + level,
+      titles: [
+        { min: 2500, t: "Comandante del Retrete Espacial" },
+        { min: 1500, t: "Piloto de Porcelana" },
+        { min: 700, t: "Cadete de la Cisterna" },
+        { min: 200, t: "Aprendiz de Astronauta" },
+        { min: 0, t: "Aterrizó de Panza" },
+      ],
+      onRetry: start,
+    });
+  }
+  function bindHold(id, k) {
+    const el = $(id);
+    const on = (e) => { e.preventDefault(); keys[k] = true; el.classList.add("on"); };
+    const off = () => { keys[k] = false; el.classList.remove("on"); };
+    el.addEventListener("pointerdown", on);
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => el.addEventListener(ev, off));
+  }
+  bindHold("left", "l"); bindHold("right", "r"); bindHold("thrust", "up");
+  const km = { ArrowLeft: "l", ArrowRight: "r", ArrowUp: "up", " ": "up" };
+  window.addEventListener("keydown", (e) => { if (km[e.key]) { keys[km[e.key]] = true; e.preventDefault(); } });
+  window.addEventListener("keyup", (e) => { if (km[e.key]) keys[km[e.key]] = false; });
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
+  $("resume").addEventListener("click", () => { B.overlay("pause", false); state = "play"; last = performance.now(); requestAnimationFrame(loop); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && state === "play") { state = "paused"; B.overlay("pause", true); } });
+  setup(); Sprites.preload(["toilet"], 50).then(draw);
+  Sprites.favicon("rocket");
+})();
+</script>
+</body>
+</html>

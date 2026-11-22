@@ -42,7 +42,7 @@
   function best(id) { return store.get("best:" + id, null); }
   function plays(id) { return store.get("plays:" + id, 0); }
   function totalPlays() {
-    return ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia"]
+    return ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia", "aterriza", "mate", "verdad"]
       .reduce((s, id) => s + plays(id), 0);
   }
   function saveScore(id, score, lowerIsBetter) {
@@ -117,7 +117,7 @@
     if (el) el.classList.toggle("show", !!show);
   }
 
-  // Fin de partida con "certificado de visita"
+  // Fin de partida con "ticket de visita"
   function gameOver(o) {
     const res = saveScore(o.id, o.score, o.lowerIsBetter);
     const titles = o.titles || [];
@@ -130,29 +130,43 @@
     const fmt = o.format || ((v) => String(v));
     const mood = res.isRecord ? "happy" : (o.good ? "happy" : "sad");
     const phrases = res.isRecord
-      ? ["¡Récord! Esto merece otra descarga 🎉", "¡Increíble! Lávate las manos y presume.", "¡Nuevo récord! El trono es tuyo."]
+      ? ["¡Récord! Esto merece otra descarga.", "¡Increíble! Lávate las manos y presume.", "¡Nuevo récord! El trono es tuyo."]
       : o.good
         ? ["¡Bien jugado! ¿Otra partidita?", "Nada mal… nadie tiene prisa, ¿verdad?"]
-        : ["Uy… ¿otra vez? Nadie está tocando la puerta.", "Casi. Las piernas aún no se duermen, ¡sigue!", "Respira hondo… mejor no tan hondo."];
+        : ["Uy… ¿otra vez? Nadie está tocando la puerta.", "Casi. Las piernas aún no se duermen.", "Respira hondo… mejor no tan hondo."];
     let end = document.getElementById("end");
     if (!end) {
       end = document.createElement("div");
       end.id = "end"; end.className = "overlay";
       document.body.appendChild(end);
     }
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    const date = now.toLocaleDateString("es", { day: "2-digit", month: "2-digit", year: "2-digit" });
+    const visit = String(plays(o.id)).padStart(4, "0");
     end.innerHTML = `
       <div class="panel">
-        <div class="mascot">${Bano.mascot(mood)}<div class="bubble">${pick(phrases)}</div></div>
-        <div class="certificate">
-          ${res.isRecord ? '<div class="stamp">¡NUEVO RÉCORD!</div>' : ""}
-          <div class="cert-label">Certificado de visita</div>
-          <div class="cert-title">${title}</div>
-          <div class="cert-score">${fmt(o.score)}</div>
-          <div class="cert-best">${o.detail ? o.detail + " · " : ""}Récord: ${res.best === null ? "—" : fmt(res.best)}</div>
-        </div>
-        <div class="actions">
-          <button class="btn" data-act="retry">🔁 Otra vez</button>
-          <a class="btn ghost" href="../index.html" style="text-decoration:none">🚪 Salir al pasillo</a>
+        <div class="panel-head"><span>Comprobante de visita</span><span>Cub. ${o.num || "00"}</span></div>
+        <div class="panel-body">
+          <div class="mascot">${Bano.mascot(mood)}<div class="say"><small>Don Rollo · limpieza</small>${pick(phrases)}</div></div>
+          <div class="ticket">
+            ${res.isRecord ? '<div class="stamp">Nuevo récord</div>' : ""}
+            <div class="t-head">BAÑOS · JUEGOS</div>
+            <div class="t-sub">${o.name || ""}</div>
+            <hr>
+            <div class="t-row"><span>FECHA</span><span>${date} ${hh}</span></div>
+            <div class="t-row"><span>VISITA N.º</span><span>${visit}</span></div>
+            ${o.detail ? `<div class="t-row"><span>DETALLE</span><span>${o.detail}</span></div>` : ""}
+            <div class="t-row"><span>RÉCORD</span><span>${res.best === null ? "—" : fmt(res.best)}</span></div>
+            <hr>
+            <div class="t-score">${fmt(o.score)}</div>
+            <div class="t-title">${title}</div>
+            <div class="barcode"></div>
+          </div>
+          <div class="actions">
+            <button class="btn" data-act="retry">Otra vez</button>
+            <a class="btn ghost" href="${o.back || "../index.html"}">Salir al pasillo</a>
+          </div>
         </div>
       </div>`;
     end.querySelector('[data-act="retry"]').addEventListener("click", () => {
@@ -181,39 +195,18 @@
     return state;
   }
 
-  // Emojis pre-renderizados (más rápido que fillText cada frame)
-  const spriteCache = new Map();
-  function emojiSprite(emoji, size) {
-    const key = emoji + "|" + size;
-    if (spriteCache.has(key)) return spriteCache.get(key);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    const c = document.createElement("canvas");
-    const pad = Math.ceil(size * 0.25);
-    c.width = c.height = Math.ceil((size + pad * 2) * dpr);
-    const x = c.getContext("2d");
-    x.scale(dpr, dpr);
-    x.textAlign = "center"; x.textBaseline = "middle";
-    x.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-    x.fillText(emoji, size / 2 + pad, size / 2 + pad + size * 0.06);
-    const s = { canvas: c, size: size + pad * 2 };
-    spriteCache.set(key, s);
-    return s;
-  }
-  function drawEmoji(ctx2d, emoji, x, y, size, rot) {
-    const s = emojiSprite(emoji, Math.round(size));
-    if (rot) {
-      ctx2d.save(); ctx2d.translate(x, y); ctx2d.rotate(rot);
-      ctx2d.drawImage(s.canvas, -s.size / 2, -s.size / 2, s.size, s.size);
-      ctx2d.restore();
-    } else {
-      ctx2d.drawImage(s.canvas, x - s.size / 2, y - s.size / 2, s.size, s.size);
-    }
+  // Pictogramas en canvas (ver js/sprites.js)
+  function drawSprite(ctx2d, name, x, y, size, rot) {
+    if (window.Sprites) window.Sprites.draw(ctx2d, name, x, y, size, rot);
   }
 
   // Botón de silencio en el HUD
   function bindMute(btn) {
     if (!btn) return;
-    const paint = () => { btn.textContent = muted ? "🔇" : "🔊"; btn.setAttribute("aria-label", muted ? "Activar sonido" : "Silenciar"); };
+    const paint = () => {
+      btn.innerHTML = window.Sprites ? window.Sprites.svg(muted ? "mute" : "sound") : (muted ? "x" : "♪");
+      btn.setAttribute("aria-label", muted ? "Activar sonido" : "Silenciar");
+    };
     paint();
     btn.addEventListener("click", () => { setMuted(!muted); paint(); if (!muted) sfx.click(); });
   }
@@ -226,8 +219,8 @@
   window.Bano = {
     store, rand, randInt, pick, shuffle, clamp,
     best, plays, totalPlays, saveScore,
-    sfx, tone, setMuted, isMuted: () => muted,
-    vibrate, overlay, gameOver, fitCanvas, drawEmoji, emojiSprite, bindMute, bump,
+    sfx, tone, noise, setMuted, isMuted: () => muted,
+    vibrate, overlay, gameOver, fitCanvas, drawSprite, bindMute, bump,
   };
 
   document.addEventListener("DOMContentLoaded", () => {

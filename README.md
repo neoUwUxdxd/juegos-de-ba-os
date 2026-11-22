@@ -1,6 +1,6 @@
 # 🧻 Juegos de Baño
 
-Mini juegos cortitos para jugar con el celular **con una mano** mientras estás en el trono.
+Mini juegos cortitos para jugar con el celular **con una mano** mientras estás en el trono. Incluye una zona para peques y otra para niños de 8 a 14 años.
 Hechos con HTML, CSS y JavaScript puro: sin instalar nada y sin librerías.
 
 **▶️ Jugar:** https://neouwuxdxd.github.io/juegos-de-ba-os/
@@ -16,7 +16,34 @@ Hechos con HTML, CSS y JavaScript puro: sin instalar nada y sin librerías.
 | 🔧 | **Desatasca la Tubería**: gira los tubos para llevar el agua del grifo al desagüe. | Puzzle | 1–3 min |
 | 🧠 | **Trivia del Trono**: 10 rondas de preguntas y palabras revueltas. | Palabras | 2–3 min |
 
-Extras: mascota **Don Rollo**, «certificado de visita» con un título gracioso al terminar, récords guardados en el navegador, sonidos sintetizados (con botón de silencio), vibración y modo noche.
+### 🐤 Zona Peques (3–7 años)
+
+Pensada para niños pequeños sentados en la bacinica: sin perder, sin prisa, sin leer y con voz en español.
+
+| Actividad | Qué hace |
+|---|---|
+| **Mis estrellas** | Tabla de premios: cada vez que van al baño (pipí o popó) ganan una estrella. Con 10, un trofeo. |
+| **Respira** | Un globo se infla y se desinfla para respirar tranquilos durante 1, 2 o 3 minutos. |
+| **Burbujas** | Al reventarlas sale un animalito que dice su nombre y hace su sonido. |
+| **Patitos** | Contar patitos del 1 al 10 en voz alta. |
+| **Stickers** | Decorar el baño arrastrando stickers. |
+| **Lávate las manos** | Frotar la pantalla 20 segundos para hacer espuma, con cancioncita. |
+
+Para salir de la zona, un adulto mantiene presionado el botón de arriba.
+
+### 🚀 Zona Grandes (8–14 años)
+
+| Juego | Tipo |
+|---|---|
+| **Aterriza el Trono**: pilota un inodoro-cohete hasta la plataforma. | Pilotaje |
+| **Mate-Retrete**: 60 segundos de cuentas que suben de nivel. | Cálculo |
+| **¿Verdad o Popó?**: datos curiosos de ciencia, ¿verdad o falso? | Ciencia |
+| **Pixel Azulejo**: pinta pixel art de 16×16 y descárgalo como imagen. | Creativo |
+| **Chistes del Cubículo**: chistes blancos de baño. | Humor |
+
+### Diseño
+
+Estilo de **señalética de baño público**: placas con contorno negro, sombras duras, puertas de cubículo con cerrojo LIBRE/OCUPADO, pictogramas propios en SVG (sin emojis) y un ticket de visita impreso al terminar cada partida. Tipografías: Archivo e IBM Plex Mono. Tiene modo noche, récords guardados en el navegador, sonidos sintetizados con botón de silencio y vibración.
 
 ## Jugar en tu computadora
 

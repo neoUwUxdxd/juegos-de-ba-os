@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Chistes del Cubículo</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .area { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 14px 16px max(14px, env(safe-area-inset-bottom)); max-width: 480px; width: 100%; margin: 0 auto; min-height: 0; }
+    .flip { flex: 1; min-height: 240px; perspective: 1000px; cursor: pointer; }
+    .flip .in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.4,0,.2,1); }
+    .flip.open .in { transform: rotateY(180deg); }
+    .side { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column;
+      border: 3px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-lg); overflow: hidden; }
+    .side .tag { display: flex; justify-content: space-between; background: var(--black); color: var(--yellow); padding: 7px 12px; font-family: var(--font-mono); font-size: .72rem; font-weight: 700; letter-spacing: .1em; }
+    .side .txt { flex: 1; display: grid; place-items: center; text-align: center; padding: 18px; font-stretch: 80%; font-weight: 800; font-size: clamp(1.5rem, 7.5vw, 2.1rem); line-height: 1.1; }
+    .front { background: var(--paper); }
+    .back { background: var(--yellow); color: #111; transform: rotateY(180deg); }
+    .back .tag { background: #111; }
+    .side .tap { text-align: center; font-family: var(--font-mono); font-size: .72rem; font-weight: 700; padding-bottom: 12px; text-transform: uppercase; opacity: .7; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row .btn { justify-content: center; }
+    .row .btn::after { content: none; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G5</span>Chistes</div>
+    <div class="pill" id="cnt">0 leídos</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="area">
+    <div class="flip" id="flip">
+      <div class="in">
+        <div class="side front"><div class="tag"><span>CHISTE</span><span id="n1">01</span></div><div class="txt" id="q"></div><div class="tap">Toca para ver el remate</div></div>
+        <div class="side back"><div class="tag"><span>REMATE</span><span id="n2">01</span></div><div class="txt" id="a"></div><div class="tap">Toca para voltear</div></div>
+      </div>
+    </div>
+    <div class="row"><button class="btn ghost" id="flipBtn">Voltear</button><button class="btn" id="nextBtn">Otro →</button></div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G5</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="laugh"></i></span><div><h2>Chistes del cubículo</h2><p>Chistes blancos de baño para contarle a tu familia (cuando salgas, por favor).</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Lee la pregunta e intenta adivinar.</span></li>
+          <li><b>2</b><span>Toca la tarjeta para ver el remate.</span></li>
+          <li><b>3</b><span>Pide otro cuando quieras: no se acaban rápido.</span></li>
+        </ol>
+        <div class="actions"><button class="btn yellow" id="go">Hazme reír</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const JOKES = [
+    ["¿Por qué el libro de matemáticas fue al baño?", "Porque tenía demasiados problemas."],
+    ["¿Por qué el inodoro fue al médico?", "Porque se sentía muy descompuesto."],
+    ["¿Qué le dijo un inodoro a otro?", "¡Te veo muy descargado hoy!"],
+    ["¿Cómo se despide el agua del inodoro?", "¡Nos vemos en la próxima descarga!"],
+    ["¿Por qué el jabón nunca gana una discusión?", "Porque siempre se le resbalan los argumentos."],
+    ["¿Qué le dijo el cepillo de dientes a la pasta?", "¡Apriétate, que llegamos tarde!"],
+    ["¿Qué le dijo la ducha al jabón?", "¡Contigo todo es pura espuma!"],
+    ["¿Cuál es el colmo de un rollo de papel?", "Que lo dejen a medias."],
+    ["¿Qué le dijo la sopapa al inodoro?", "Tranquilo, yo te saco de este problema."],
+    ["¿Por qué el espejo no tiene amigos?", "Porque solo sabe copiar lo que hacen los demás."],
+    ["¿Cómo se llama el campeón japonés de buceo?", "Tokofondo. (Y el subcampeón: Kasitoko.)"],
+    ["—Mamá, mamá, en la bañera hay un pez.", "—¿Y qué hace? —Nada."],
+    ["¿Qué le dice el agua del inodoro al que se va sin jalar?", "¡Oye, no te olvides de mí!"],
+    ["¿Por qué el patito de goma es tan buen amigo?", "Porque siempre te mantiene a flote."],
+    ["¿Cuál es el colmo de un fontanero?", "Tener un hijo que se atasca en matemáticas."],
+    ["¿Por qué la toalla nunca se enoja?", "Porque se toma todo con mucha calma… y lo seca."],
+    ["¿Qué le dijo el grifo al lavabo?", "Estoy a tu servicio, ¡solo dame una vuelta!"],
+    ["¿Por qué el papel higiénico cruzó la calle?", "Porque se le había atorado en el zapato a alguien."],
+    ["¿Qué hace una abeja en el baño?", "¡Se da una ducha de miel!"],
+    ["¿Por qué el cerebro siempre quiere ir al baño?", "Porque dicen que ahí se le ocurren las mejores ideas."],
+    ["¿Qué le dijo el rollo de papel al rollo nuevo?", "Tú tienes toda la vida por delante."],
+    ["¿Cuál es el baile favorito del inodoro?", "¡El remolino!"],
+  ];
+  let order = B.shuffle([...JOKES.keys()]), i = 0, read = B.store.get("chistes:read", 0);
+  const flip = $("flip");
+  function laugh() { [0, .14, .28, .42].forEach((d, k) => B.tone(420 - k * 40, 0.1, { type: "square", vol: 0.06, delay: d, to: 300 - k * 30 })); }
+  function show() {
+    const [q, a] = JOKES[order[i % order.length]];
+    flip.classList.remove("open");
+    setTimeout(() => { $("q").textContent = q; $("a").textContent = a; }, flip.classList.contains("open") ? 220 : 0);
+    const n = String((i % order.length) + 1).padStart(2, "0");
+    $("n1").textContent = n; $("n2").textContent = n;
+    $("cnt").textContent = read + " leídos";
+  }
+  function toggle() {
+    const opening = !flip.classList.contains("open");
+    flip.classList.toggle("open");
+    if (opening) { laugh(); read++; B.store.set("chistes:read", read); $("cnt").textContent = read + " leídos"; }
+    else B.sfx.swish();
+  }
+  flip.addEventListener("click", toggle);
+  $("flipBtn").addEventListener("click", toggle);
+  $("nextBtn").addEventListener("click", () => {
+    i++; if (i % order.length === 0) order = B.shuffle(order);
+    flip.classList.remove("open"); B.sfx.click();
+    setTimeout(show, 200);
+  });
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); });
+  show();
+  Sprites.favicon("laugh");
+})();
+</script>
+</body>
+</html>
