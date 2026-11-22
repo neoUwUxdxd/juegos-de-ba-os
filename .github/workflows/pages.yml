@@ -1,36 +1,42 @@
 name: Publicar en GitHub Pages
 
+# Copia el sitio a la rama gh-pages, desde donde GitHub Pages lo sirve.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - name: Preparar archivos del sitio
+      - name: Copiar el sitio a gh-pages
         run: |
-          mkdir -p _site
-          cp -r index.html css js games .nojekyll _site/
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          mkdir -p "$RUNNER_TEMP/site"
+          cp -r index.html css js games .nojekyll "$RUNNER_TEMP/site/"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages || true
+          if git rev-parse --verify -q origin/gh-pages >/dev/null; then
+            git checkout -B gh-pages origin/gh-pages
+          else
+            git checkout --orphan gh-pages
+          fi
+          git rm -rq --ignore-unmatch .
+          git clean -fdq
+          cp -r "$RUNNER_TEMP/site/." .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Sin cambios que publicar"
+          else
+            git commit -m "Publicar sitio desde ${GITHUB_SHA::7}"
+            git push origin gh-pages
+          fi
