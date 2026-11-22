@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Lluvia de Papel</title>
+  <meta name="theme-color" content="#d8f0ea">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧻</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="../index.html" aria-label="Volver al menú">🚪</a>
+    <div class="hud-title">🧻 Lluvia de Papel</div>
+    <div class="pill" id="lives">❤️❤️❤️</div>
+    <div class="pill" id="score">0</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <span class="big-emoji">🧻</span>
+      <h2>Lluvia de Papel</h2>
+      <p>¡Se rompió el dispensador y llueve papel!</p>
+      <div class="howto"><ul>
+        <li>Arrastra el dedo para mover el 🚽.</li>
+        <li>Atrapa 🧻 para sumar puntos. Los dorados valen ×5.</li>
+        <li>Esquiva 💩 y 🪠: te quitan una vida.</li>
+        <li>Atrapa seguidos para subir el combo.</li>
+      </ul></div>
+      <div class="actions"><button class="btn" id="go">¡A jugar!</button></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause">
+    <div class="panel">
+      <span class="big-emoji">⏸️</span>
+      <h2>Pausa</h2>
+      <p>Tranquilo, el papel te espera.</p>
+      <div class="actions"><button class="btn" id="resume">Seguir</button></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const stage = document.getElementById("stage");
+  const cv = document.getElementById("cv");
+  const scoreEl = document.getElementById("score");
+  const livesEl = document.getElementById("lives");
+  let state = "idle", items = [], score = 0, lives = 3, t = 0, spawnT = 0, combo = 0, last = 0;
+  let sparkles = [];
+  const player = { x: 0, tx: 0, y: 0, squash: 0, hurt: 0 };
+  function placePlayer() {
+    player.y = S.h - 56;
+    player.x = B.clamp(player.x || S.w / 2, 30, S.w - 30);
+    player.tx = B.clamp(player.tx || S.w / 2, 30, S.w - 30);
+  }
+  const S = B.fitCanvas(cv, () => { placePlayer(); if (state !== "play") draw(); });
+  const ctx = S.ctx;
+  placePlayer();
+
+  function hud() {
+    scoreEl.textContent = score;
+    livesEl.textContent = "❤️".repeat(lives) + "🖤".repeat(3 - lives);
+  }
+
+  function start() {
+    items = []; sparkles = []; score = 0; lives = 3; t = 0; spawnT = 0.6; combo = 0;
+    player.x = player.tx = S.w / 2; player.y = S.h - 56;
+    hud();
+    state = "play";
+    last = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  function spawn() {
+    const r = Math.random();
+    let kind = "roll";
+    if (r > 0.94) kind = "gold";
+    else if (r > 0.70) kind = t > 12 && Math.random() < 0.35 ? "plunger" : "poop";
+    const speed = (150 + t * 7) * B.rand(0.85, 1.2);
+    items.push({
+      kind, x: B.rand(30, S.w - 30), y: -30, vy: speed,
+      rot: B.rand(-0.5, 0.5), vr: B.rand(-2, 2), size: kind === "gold" ? 46 : 42,
+      wob: B.rand(0, 6), drift: kind === "plunger" ? B.rand(-40, 40) : 0,
+    });
+  }
+
+  function screenPos(x, y) {
+    const r = cv.getBoundingClientRect();
+    return [r.left + x, r.top + y];
+  }
+
+  function catchItem(it) {
+    const [sx, sy] = screenPos(it.x, it.y);
+    player.squash = 1;
+    if (it.kind === "roll" || it.kind === "gold") {
+      combo++;
+      const mult = 1 + Math.floor(combo / 6);
+      const pts = (it.kind === "gold" ? 50 : 10) * mult;
+      score += pts;
+      FX.floatText(sx, sy - 10, "+" + pts + (mult > 1 ? " ×" + mult : ""), it.kind === "gold" ? "gold" : "");
+      FX.bubbles(sx, sy, it.kind === "gold" ? 12 : 6);
+      if (it.kind === "gold") { B.sfx.gold(); B.vibrate(20); }
+      else B.sfx.plop();
+      if (combo > 0 && combo % 6 === 0) FX.toast("🔥 Combo ×" + (1 + combo / 6));
+      B.bump(scoreEl);
+    } else {
+      lives--; combo = 0; player.hurt = 1;
+      FX.floatText(sx, sy - 10, it.kind === "poop" ? "¡Puaj!" : "¡Auch!", "bad");
+      FX.shake(stage); B.sfx.bad(); B.vibrate(120);
+      B.bump(livesEl);
+      if (lives <= 0) return end();
+    }
+    hud();
+  }
+
+  function end() {
+    state = "over";
+    hud();
+    B.gameOver({
+      id: "lluvia", score, good: score >= 300,
+      format: (v) => v + " pts",
+      detail: "Tiempo: " + Math.round(t) + " s",
+      titles: [
+        { min: 2000, t: "Leyenda del Rollo Infinito" },
+        { min: 1200, t: "Maestro del Trono" },
+        { min: 600, t: "Duque del Bidet" },
+        { min: 300, t: "Caballero del Papel" },
+        { min: 100, t: "Aprendiz de Fontanero" },
+        { min: 0, t: "Turista del Cubículo" },
+      ],
+      onRetry: start,
+    });
+  }
+
+  function loop(now) {
+    if (state !== "play") return;
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    t += dt;
+    spawnT -= dt;
+    if (spawnT <= 0) {
+      spawn();
+      if (t > 25 && Math.random() < 0.25) spawn();
+      spawnT = Math.max(0.32, 0.85 - t * 0.012);
+    }
+    player.x += (player.tx - player.x) * Math.min(1, dt * 18);
+    player.squash = Math.max(0, player.squash - dt * 4);
+    player.hurt = Math.max(0, player.hurt - dt * 2);
+
+    const catchY = player.y - 22;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      it.y += it.vy * dt;
+      it.x += Math.sin(t * 3 + it.wob) * 20 * dt + it.drift * dt;
+      it.x = B.clamp(it.x, 20, S.w - 20);
+      it.rot += it.vr * dt;
+      if (it.y > catchY - 14 && it.y < catchY + 22 && Math.abs(it.x - player.x) < 40) {
+        items.splice(i, 1);
+        catchItem(it);
+        if (state !== "play") return;
+        continue;
+      }
+      if (it.y > S.h + 40) {
+        items.splice(i, 1);
+        if (it.kind === "roll" || it.kind === "gold") combo = 0;
+      }
+    }
+    if (Math.random() < 0.2) {
+      for (const it of items) if (it.kind === "gold") sparkles.push({ x: it.x + B.rand(-18, 18), y: it.y + B.rand(-18, 18), life: 1 });
+    }
+    sparkles.forEach((s) => (s.life -= dt * 2));
+    sparkles = sparkles.filter((s) => s.life > 0);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, S.w, S.h);
+
+    // Piso
+    const floorY = player.y + 30;
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.fillRect(0, floorY, S.w, S.h - floorY);
+
+    for (const it of items) {
+      if (it.kind === "gold") {
+        const g = ctx.createRadialGradient(it.x, it.y, 4, it.x, it.y, 40);
+        g.addColorStop(0, "rgba(255,212,94,0.9)");
+        g.addColorStop(1, "rgba(255,212,94,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(it.x, it.y, 40, 0, Math.PI * 2); ctx.fill();
+      }
+      const e = it.kind === "poop" ? "💩" : it.kind === "plunger" ? "🪠" : "🧻";
+      B.drawEmoji(ctx, e, it.x, it.y, it.size, it.rot);
+    }
+    for (const s of sparkles) {
+      ctx.globalAlpha = s.life;
+      B.drawEmoji(ctx, "✨", s.x, s.y, 14);
+    }
+    ctx.globalAlpha = 1;
+
+    // Sombra + jugador
+    ctx.fillStyle = "rgba(35,54,74,0.15)";
+    ctx.beginPath(); ctx.ellipse(player.x, floorY, 38, 8, 0, 0, Math.PI * 2); ctx.fill();
+    const sq = Math.sin(player.squash * Math.PI) * 0.18;
+    ctx.save();
+    ctx.translate(player.x, player.y + 26);
+    ctx.scale(1 + sq, 1 - sq);
+    if (player.hurt > 0) ctx.rotate(Math.sin(player.hurt * 30) * 0.15);
+    B.drawEmoji(ctx, "🚽", 0, -26, 66);
+    ctx.restore();
+
+    if (combo >= 3) {
+      ctx.font = '700 15px Fredoka, sans-serif';
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#e95f8c";
+      ctx.fillText("combo " + combo, player.x, floorY + 22);
+    }
+  }
+
+  function setTarget(e) {
+    const r = cv.getBoundingClientRect();
+    player.tx = B.clamp(e.clientX - r.left, 30, S.w - 30);
+  }
+  stage.addEventListener("pointerdown", (e) => { setTarget(e); stage.setPointerCapture && stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" || e.buttons || e.pressure > 0) setTarget(e); });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") player.tx = B.clamp(player.tx - 60, 30, S.w - 30);
+    if (e.key === "ArrowRight") player.tx = B.clamp(player.tx + 60, 30, S.w - 30);
+  });
+
+  document.getElementById("go").addEventListener("click", () => { B.sfx.flush(); B.overlay("start", false); start(); });
+  document.getElementById("resume").addEventListener("click", () => {
+    B.overlay("pause", false); state = "play"; last = performance.now(); requestAnimationFrame(loop);
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && state === "play") { state = "paused"; B.overlay("pause", true); }
+  });
+
+  draw();
+})();
+</script>
+</body>
+</html>

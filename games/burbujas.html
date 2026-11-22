@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Burbujas de Jabón</title>
+  <meta name="theme-color" content="#d8f0ea">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫧</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="../index.html" aria-label="Volver al menú">🚪</a>
+    <div class="hud-title">🫧 Burbujas de Jabón</div>
+    <div class="pill" id="score">0</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="paper-bar" id="bar"><i id="barFill"></i><b id="barTxt">45s</b></div>
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <span class="big-emoji">🫧</span>
+      <h2>Burbujas de Jabón</h2>
+      <p>Alguien echó demasiado jabón en la tina. ¡Revienta todo!</p>
+      <div class="howto"><ul>
+        <li>Toca las burbujas antes de que se escapen por arriba.</li>
+        <li>Las pequeñas valen más. Revienta seguido para el combo.</li>
+        <li>🦆 Patito: +30 y +3 segundos de papel.</li>
+        <li>💨 Burbuja de olor: −20 y −3 segundos. ¡Ni la toques!</li>
+      </ul></div>
+      <div class="actions"><button class="btn" id="go">¡A reventar!</button></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause">
+    <div class="panel">
+      <span class="big-emoji">⏸️</span>
+      <h2>Pausa</h2>
+      <p>Las burbujas te esperan flotando.</p>
+      <div class="actions"><button class="btn" id="resume">Seguir</button></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const stage = document.getElementById("stage");
+  const cv = document.getElementById("cv");
+  const scoreEl = document.getElementById("score");
+  const barFill = document.getElementById("barFill"), barTxt = document.getElementById("barTxt");
+  const TOTAL = 45;
+
+  let state = "idle", bubbles = [], rings = [], score = 0, time = TOTAL, t = 0, spawnT = 0, last = 0, combo = 0, popped = 0, ducks = 0;
+  const S = B.fitCanvas(cv, () => { if (state !== "play") draw(); });
+  const ctx = S.ctx;
+
+  function hud() {
+    scoreEl.textContent = score;
+    barFill.style.transform = `scaleX(${B.clamp(time / TOTAL, 0, 1)})`;
+    barTxt.textContent = Math.ceil(Math.max(0, time)) + "s";
+  }
+
+  function start() {
+    bubbles = []; rings = []; score = 0; time = TOTAL; t = 0; spawnT = 0; combo = 0; popped = 0; ducks = 0;
+    hud(); state = "play"; last = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  function spawn() {
+    const r0 = Math.random();
+    const kind = r0 < 0.09 ? "duck" : r0 < 0.24 + Math.min(0.12, t * 0.003) ? "stink" : "soap";
+    const r = kind === "duck" ? B.rand(30, 36) : B.rand(18, 40);
+    bubbles.push({
+      kind, r, x: B.rand(r + 6, S.w - r - 6), y: S.h + r + 4,
+      vy: B.rand(55, 95) + t * 2.2 + (40 - r) * 1.2,
+      wob: B.rand(0, 6), amp: B.rand(10, 26), born: t,
+    });
+  }
+
+  function pop(b, sx, sy) {
+    rings.push({ x: b.x, y: b.y, r: b.r, life: 1, kind: b.kind });
+    if (b.kind === "stink") {
+      score = Math.max(0, score - 20); time -= 3; combo = 0;
+      FX.floatText(sx, sy, "−20 · −3s 🤢", "bad");
+      FX.shake(stage); B.sfx.bad(); B.vibrate(100);
+    } else {
+      combo++; popped++;
+      const mult = 1 + Math.floor(combo / 8);
+      let pts = Math.round((10 + (40 - b.r) * 0.6) * mult);
+      if (b.kind === "duck") { pts = 30 * mult; time = Math.min(TOTAL, time + 3); ducks++; B.sfx.gold(); FX.floatText(sx, sy, "+" + pts + " · +3s 🦆", "gold"); }
+      else { B.sfx.bubble(); FX.floatText(sx, sy, "+" + pts + (mult > 1 ? " ×" + mult : "")); }
+      score += pts;
+      FX.bubbles(sx, sy, 7);
+      B.vibrate(10);
+      if (combo % 8 === 0) FX.toast("🫧 ¡Combo ×" + (1 + combo / 8) + "!");
+    }
+    B.bump(scoreEl);
+    hud();
+  }
+
+  function end() {
+    state = "over"; hud();
+    B.gameOver({
+      id: "burbujas", score, good: score >= 400,
+      format: (v) => v + " pts",
+      detail: `${popped} burbujas · ${ducks} 🦆`,
+      titles: [
+        { min: 1800, t: "Emperador de la Espuma" },
+        { min: 1100, t: "Capitán de la Bañera" },
+        { min: 600, t: "Rescatista de Patitos" },
+        { min: 250, t: "Enjabonado Novato" },
+        { min: 0, t: "Le Entró Jabón en el Ojo" },
+      ],
+      onRetry: start,
+    });
+  }
+
+  function loop(now) {
+    if (state !== "play") return;
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+    t += dt; time -= dt;
+    spawnT -= dt;
+    if (spawnT <= 0) { spawn(); spawnT = Math.max(0.22, 0.7 - t * 0.011); }
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const b = bubbles[i];
+      b.y -= b.vy * dt;
+      if (b.y < -b.r - 10) {
+        bubbles.splice(i, 1);
+        if (b.kind !== "stink") combo = 0;
+      }
+    }
+    rings.forEach((r) => (r.life -= dt * 3));
+    rings = rings.filter((r) => r.life > 0);
+    if (Math.floor(time * 4) !== Math.floor((time + dt) * 4)) hud();
+    if (time <= 5 && Math.floor(time) !== Math.floor(time + dt)) B.sfx.tick();
+    draw();
+    if (time <= 0) return end();
+    requestAnimationFrame(loop);
+  }
+
+  function bx(b) { return b.x + Math.sin(t * 2 + b.wob) * b.amp * 0.4; }
+
+  function drawBubble(b) {
+    const x = bx(b), y = b.y, r = b.r;
+    const stink = b.kind === "stink";
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+    if (stink) {
+      g.addColorStop(0, "rgba(220,255,200,0.6)");
+      g.addColorStop(0.7, "rgba(140,190,70,0.28)");
+      g.addColorStop(1, "rgba(110,150,40,0.7)");
+    } else {
+      g.addColorStop(0, "rgba(255,255,255,0.75)");
+      g.addColorStop(0.65, "rgba(180,220,255,0.12)");
+      g.addColorStop(0.9, "rgba(255,170,220,0.35)");
+      g.addColorStop(1, "rgba(120,200,255,0.75)");
+    }
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = stink ? "rgba(90,120,30,0.6)" : "rgba(255,255,255,0.8)";
+    ctx.stroke();
+    // brillo
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.beginPath(); ctx.ellipse(x - r * 0.4, y - r * 0.45, r * 0.22, r * 0.12, -0.6, 0, Math.PI * 2); ctx.fill();
+    if (b.kind === "duck") B.drawEmoji(ctx, "🦆", x, y + 2, r * 1.15, Math.sin(t * 3 + b.wob) * 0.2);
+    if (stink) B.drawEmoji(ctx, "💨", x, y, r * 1.0, Math.sin(t * 4 + b.wob) * 0.3);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, S.w, S.h);
+    // agua de la tina abajo
+    const wh = 46;
+    const grd = ctx.createLinearGradient(0, S.h - wh, 0, S.h);
+    grd.addColorStop(0, "rgba(103,184,255,0.25)");
+    grd.addColorStop(1, "rgba(103,184,255,0.55)");
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.moveTo(0, S.h);
+    for (let x = 0; x <= S.w; x += 12) ctx.lineTo(x, S.h - wh + Math.sin(x / 30 + t * 2.5) * 5);
+    ctx.lineTo(S.w, S.h); ctx.closePath(); ctx.fill();
+
+    for (const b of bubbles) drawBubble(b);
+    for (const r of rings) {
+      ctx.globalAlpha = r.life;
+      ctx.strokeStyle = r.kind === "stink" ? "rgba(110,150,40,0.9)" : "rgba(103,184,255,0.9)";
+      ctx.lineWidth = 3 * r.life;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.r * (1 + (1 - r.life) * 0.8), 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  stage.addEventListener("pointerdown", (e) => {
+    if (state !== "play") return;
+    const rect = cv.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    let hit = -1, bestD = Infinity;
+    bubbles.forEach((b, i) => {
+      const d = Math.hypot(bx(b) - px, b.y - py);
+      if (d < b.r + 12 && d < bestD) { bestD = d; hit = i; }
+    });
+    if (hit >= 0) {
+      const b = bubbles[hit];
+      bubbles.splice(hit, 1);
+      b.x = bx(b);
+      pop(b, e.clientX, e.clientY);
+      if (time <= 0) end();
+    }
+  });
+
+  document.getElementById("go").addEventListener("click", () => { B.sfx.bubble(); B.overlay("start", false); start(); });
+  document.getElementById("resume").addEventListener("click", () => {
+    B.overlay("pause", false); state = "play"; last = performance.now(); requestAnimationFrame(loop);
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && state === "play") { state = "paused"; B.overlay("pause", true); }
+  });
+  hud(); draw();
+})();
+</script>
+</body>
+</html>

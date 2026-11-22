@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Desatasca la Tubería</title>
+  <meta name="theme-color" content="#d8f0ea">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <style>
+    .wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 4px 16px 18px; }
+    .wall {
+      width: min(100%, 470px);
+      padding: 12px;
+      border-radius: 24px;
+      background:
+        linear-gradient(rgba(255,255,255,.7) 2px, transparent 2px) 0 0 / 34px 34px,
+        linear-gradient(90deg, rgba(255,255,255,.7) 2px, transparent 2px) 0 0 / 34px 34px,
+        color-mix(in srgb, #ff9f5a 16%, var(--card));
+      border: 3px solid var(--card-edge);
+      box-shadow: var(--shadow);
+    }
+    .level-name { text-align: center; font-family: var(--font-title); font-weight: 600; margin: 0 0 10px; color: var(--ink-soft); }
+    .grid { display: grid; gap: 3px; }
+    .tile {
+      appearance: none; border: 0; padding: 0; cursor: pointer;
+      aspect-ratio: 1; border-radius: 10px;
+      background: color-mix(in srgb, var(--card) 85%, transparent);
+      box-shadow: inset 0 -3px 0 rgba(35,54,74,.08);
+      position: relative;
+    }
+    .tile:active { background: color-mix(in srgb, var(--yellow) 35%, var(--card)); }
+    .tile svg { position: absolute; inset: 0; width: 100%; height: 100%; transition: transform .22s cubic-bezier(.3,1.5,.5,1); }
+    .tile .pipe-out { stroke: #8b98a5; }
+    .tile .pipe-in { stroke: #3c4b5c; transition: stroke .3s; }
+    .tile.wet .pipe-in { stroke: #4fb3ff; }
+    .tile.wet .pipe-out { stroke: #2f8ae0; }
+    .tile.flow .pipe-in { stroke: #7fd0ff; animation: flow .6s ease-out; }
+    @keyframes flow { 50% { stroke: #fff; } }
+    .side { display: grid; place-items: center; font-size: clamp(1.2rem, 6vw, 1.8rem); }
+    .side.src { animation: wobble 2s ease-in-out infinite; }
+    .solved .tile.wet .pipe-in { animation: shimmer 1s ease-in-out infinite; }
+    @keyframes shimmer { 50% { stroke: #c8ecff; } }
+    .hint { text-align: center; color: var(--ink-soft); font-size: .85rem; font-weight: 700; margin-top: 10px; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="../index.html" aria-label="Volver al menú">🚪</a>
+    <div class="hud-title">🔧 Tubería</div>
+    <div class="pill" id="level">Nivel 1</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="paper-bar"><i id="barFill"></i><b id="barTxt">60s</b></div>
+  <div class="stage" id="stage">
+    <div class="wrap">
+      <div class="wall" id="wall">
+        <div class="level-name" id="levelName"></div>
+        <div class="grid" id="grid"></div>
+        <div class="hint">Toca un tubo para girarlo ↻</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <span class="big-emoji">🔧</span>
+      <h2>Desatasca la Tubería</h2>
+      <p>Un vecino tiró algo raro por el lavabo. ¡Arregla los tubos antes de que se acabe el papel!</p>
+      <div class="howto"><ul>
+        <li>Toca un tubo para girarlo 90°.</li>
+        <li>Conecta el grifo 🚰 con el desagüe 🕳️.</li>
+        <li>Los tubos con agua se ponen azules.</li>
+        <li>Cada nivel resuelto te da +20 segundos.</li>
+      </ul></div>
+      <div class="actions"><button class="btn" id="go">¡Manos a la obra!</button></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const N = 1, E = 2, S = 4, W = 8;
+  const DIRS = [[N, -1, 0, S], [E, 0, 1, W], [S, 1, 0, N], [W, 0, -1, E]];
+  const gridEl = document.getElementById("grid"), wall = document.getElementById("wall");
+  const levelEl = document.getElementById("level"), levelName = document.getElementById("levelName");
+  const barFill = document.getElementById("barFill"), barTxt = document.getElementById("barTxt");
+  const MAXT = 90;
+  const names = ["Lavabo de la abuela", "Baño de oficina", "Gasolinera de carretera", "Hotel cinco estrellas", "Estadio en la final", "Submarino", "Castillo embrujado", "Estación espacial", "Palacio real", "Dimensión desconocida"];
+
+  let rows, cols, base, rot, deg, srcRow, dstRow, level = 0, time = 60, timer = 0, playing = false, solvedLock = false, tiles = [];
+
+  const rotm = (m, k) => { for (let i = 0; i < (k % 4); i++) m = ((m << 1) | (m >> 3)) & 15; return m; };
+  const eff = (r, c) => rotm(base[r][c], rot[r][c]);
+
+  function pipeSVG(m) {
+    let arms = "";
+    const ends = { [N]: "50,0", [E]: "100,50", [S]: "50,100", [W]: "0,50" };
+    for (const d of [N, E, S, W]) if (m & d) arms += `M50,50 L${ends[d]} `;
+    const isEnd = [N, E, S, W].filter((d) => m & d).length === 1;
+    return `<svg viewBox="0 0 100 100" aria-hidden="true">
+      <path class="pipe-out" d="${arms}" stroke-width="34" stroke-linecap="${isEnd ? "round" : "butt"}" fill="none"/>
+      <circle class="pipe-out" cx="50" cy="50" r="17" fill="currentColor" style="color:#8b98a5" stroke-width="0"/>
+      <path class="pipe-in" d="${arms}" stroke-width="16" stroke-linecap="round" fill="none"/>
+    </svg>`;
+  }
+
+  // Camino aleatorio (DFS) desde la izquierda hasta la columna final
+  function makePath() {
+    const seen = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const path = [];
+    const r0 = B.randInt(0, rows - 1);
+    function dfs(r, c) {
+      seen[r][c] = true; path.push([r, c]);
+      if (c === cols - 1 && path.length >= cols + Math.floor(rows / 2)) return true;
+      for (const [, dr, dc] of B.shuffle(DIRS)) {
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nc < 0 || nr >= rows || nc >= cols || seen[nr][nc]) continue;
+        if (dfs(nr, nc)) return true;
+      }
+      path.pop(); return false;
+    }
+    if (!dfs(r0, 0)) return makePath();
+    return path;
+  }
+
+  function newLevel() {
+    level++;
+    rows = Math.min(7, 3 + Math.ceil(level / 2));
+    cols = Math.min(6, 3 + Math.floor(level / 2));
+    const path = makePath();
+    base = Array.from({ length: rows }, () => Array(cols).fill(0));
+    path.forEach(([r, c], i) => {
+      let m = 0;
+      const link = (o) => { if (!o) return; const dr = o[0] - r, dc = o[1] - c; for (const [d, rr, cc] of DIRS) if (rr === dr && cc === dc) m |= d; };
+      if (i === 0) m |= W; else link(path[i - 1]);
+      if (i === path.length - 1) m |= E; else link(path[i + 1]);
+      base[r][c] = m;
+    });
+    srcRow = path[0][0]; dstRow = path[path.length - 1][0];
+    const decoys = [N | S, N | E, N | E | S, N | S, E | S];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (!base[r][c]) base[r][c] = B.pick(decoys);
+    rot = base.map((row) => row.map(() => B.randInt(0, 3)));
+    if (solvedNow()) rot[path[0][0]][path[0][1]] = (rot[path[0][0]][path[0][1]] + 1) % 4;
+    deg = rot.map((row) => row.map((k) => k * 90));
+    render();
+    levelEl.textContent = "Nivel " + level;
+    levelName.textContent = "🏠 " + names[(level - 1) % names.length];
+    B.bump(levelEl);
+  }
+
+  function render() {
+    gridEl.style.gridTemplateColumns = `0.7fr repeat(${cols}, 1fr) 0.7fr`;
+    gridEl.innerHTML = "";
+    tiles = [];
+    for (let r = 0; r < rows; r++) {
+      const s = document.createElement("div");
+      s.className = "side" + (r === srcRow ? " src" : "");
+      s.textContent = r === srcRow ? "🚰" : "";
+      gridEl.appendChild(s);
+      tiles.push([]);
+      for (let c = 0; c < cols; c++) {
+        const t = document.createElement("button");
+        t.className = "tile";
+        t.setAttribute("aria-label", "Tubo, fila " + (r + 1) + " columna " + (c + 1));
+        t.innerHTML = pipeSVG(base[r][c]);
+        t.firstElementChild.style.transform = `rotate(${deg[r][c]}deg)`;
+        t.addEventListener("pointerdown", (e) => { e.preventDefault(); turn(r, c); });
+        gridEl.appendChild(t);
+        tiles[r].push(t);
+      }
+      const d = document.createElement("div");
+      d.className = "side";
+      d.textContent = r === dstRow ? "🕳️" : "";
+      gridEl.appendChild(d);
+    }
+    paintWater();
+  }
+
+  function reach() {
+    const wet = Array.from({ length: rows }, () => Array(cols).fill(false));
+    if (!(eff(srcRow, 0) & W)) return { wet, done: false };
+    const q = [[srcRow, 0]]; wet[srcRow][0] = true;
+    let done = false;
+    while (q.length) {
+      const [r, c] = q.shift();
+      const m = eff(r, c);
+      if (r === dstRow && c === cols - 1 && (m & E)) done = true;
+      for (const [d, dr, dc, opp] of DIRS) {
+        if (!(m & d)) continue;
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nc < 0 || nr >= rows || nc >= cols || wet[nr][nc]) continue;
+        if (eff(nr, nc) & opp) { wet[nr][nc] = true; q.push([nr, nc]); }
+      }
+    }
+    return { wet, done };
+  }
+  function solvedNow() { return reach().done; }
+
+  function paintWater() {
+    const { wet } = reach();
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const t = tiles[r][c];
+      const was = t.classList.contains("wet");
+      t.classList.toggle("wet", wet[r][c]);
+      if (wet[r][c] && !was) { t.classList.remove("flow"); void t.offsetWidth; t.classList.add("flow"); }
+    }
+  }
+
+  function turn(r, c) {
+    if (!playing || solvedLock) return;
+    rot[r][c] = (rot[r][c] + 1) % 4;
+    deg[r][c] += 90;
+    tiles[r][c].firstElementChild.style.transform = `rotate(${deg[r][c]}deg)`;
+    B.sfx.click(); B.vibrate(6);
+    paintWater();
+    if (solvedNow()) solved();
+  }
+
+  function solved() {
+    solvedLock = true;
+    wall.classList.add("solved");
+    time = Math.min(MAXT, time + 20);
+    B.sfx.flush(); B.vibrate([20, 40, 20]);
+    const r = wall.getBoundingClientRect();
+    FX.floatText(r.left + r.width / 2, r.top + 30, "¡Desatascado! +20s", "gold");
+    FX.bubbles(r.right - 30, r.top + r.height / 2, 14);
+    paintBar();
+    setTimeout(() => { wall.classList.remove("solved"); solvedLock = false; if (playing) newLevel(); }, 1300);
+  }
+
+  function paintBar() {
+    barFill.style.transform = `scaleX(${B.clamp(time / MAXT, 0, 1)})`;
+    barTxt.textContent = Math.max(0, Math.ceil(time)) + "s";
+  }
+
+  function start() {
+    level = 0; time = 60; playing = true; solvedLock = false;
+    newLevel(); paintBar();
+    clearInterval(timer);
+    let lastT = performance.now();
+    timer = setInterval(() => {
+      const now = performance.now();
+      if (!solvedLock) time -= Math.min(1, (now - lastT) / 1000);
+      lastT = now;
+      if (time <= 5 && time > 0) B.sfx.tick();
+      paintBar();
+      if (time <= 0) end();
+    }, 250);
+  }
+
+  function end() {
+    playing = false; clearInterval(timer);
+    const lv = level - 1;
+    B.sfx.bad();
+    B.gameOver({
+      id: "tuberia", score: lv, good: lv >= 3,
+      format: (v) => v + (v === 1 ? " nivel" : " niveles"),
+      detail: "Llegaste a: " + names[(level - 1) % names.length],
+      titles: [
+        { min: 10, t: "Fontanero Legendario" },
+        { min: 7, t: "Ingeniero Hidráulico" },
+        { min: 4, t: "Desatascador Profesional" },
+        { min: 2, t: "Ayudante con Sopapa" },
+        { min: 0, t: "Inundó el Baño" },
+      ],
+      onRetry: start,
+    });
+  }
+
+  document.getElementById("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
+  // tablero de muestra detrás de la portada
+  level = 0; newLevel(); level = 0; levelEl.textContent = "Nivel 1";
+})();
+</script>
+</body>
+</html>
