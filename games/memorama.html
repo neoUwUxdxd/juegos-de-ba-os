@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Memorama del Botiquín</title>
+  <meta name="theme-color" content="#d8f0ea">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪥</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <style>
+    .board-wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 6px 16px 18px; }
+    .cabinet {
+      width: min(100%, 440px, calc((100dvh - 150px) * 0.74));
+      padding: 14px;
+      border-radius: 26px;
+      background: linear-gradient(180deg, #f9fbfc, #e3eaef);
+      border: 3px solid #23364a;
+      box-shadow: var(--shadow), inset 0 -6px 0 rgba(35,54,74,.08);
+      position: relative;
+    }
+    .cabinet::before {
+      content: "✚"; position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+      width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+      background: var(--pink); color: #fff; font-weight: 900; border: 3px solid #23364a;
+    }
+    .board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .card { aspect-ratio: 3 / 4; perspective: 700px; cursor: pointer; }
+    .card .inner {
+      position: relative; width: 100%; height: 100%;
+      transform-style: preserve-3d;
+      transition: transform .45s cubic-bezier(.3,1.3,.5,1);
+    }
+    .card.open .inner, .card.done .inner { transform: rotateY(180deg); }
+    .face { position: absolute; inset: 0; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; }
+    .front {
+      /* Puertita con espejo */
+      background:
+        linear-gradient(120deg, transparent 30%, rgba(255,255,255,.85) 38%, transparent 46%, transparent 58%, rgba(255,255,255,.5) 62%, transparent 68%),
+        linear-gradient(160deg, #cfe3ee, #9fb9c9 60%, #b9cfdc);
+      border: 3px solid #8aa0b0;
+      box-shadow: inset 0 0 0 3px rgba(255,255,255,.6), 0 3px 0 rgba(35,54,74,.2);
+    }
+    .front::after { /* manija */
+      content: ""; position: absolute; right: 6px; top: 50%; width: 5px; height: 22%; margin-top: -11%;
+      border-radius: 4px; background: linear-gradient(90deg, #8b98a5, #fff, #8b98a5);
+      box-shadow: 0 1px 2px rgba(0,0,0,.25);
+    }
+    .back {
+      transform: rotateY(180deg);
+      background: var(--c, #fff);
+      border: 3px solid rgba(35,54,74,.15);
+      font-size: clamp(1.7rem, 9vw, 2.6rem);
+      box-shadow: inset 0 -4px 0 rgba(0,0,0,.06);
+    }
+    .card.done .back { animation: glow .7s ease-out; border-color: var(--good); }
+    @keyframes glow { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--good) 40%, transparent); transform: rotateY(180deg) scale(1.08); } }
+    .card.nope .inner { animation: nope .4s; }
+    @keyframes nope { 25% { transform: rotateY(180deg) translateX(-5px); } 75% { transform: rotateY(180deg) translateX(5px); } }
+    .card:active .inner { scale: .96; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="../index.html" aria-label="Volver al menú">🚪</a>
+    <div class="hud-title">🪥 Memorama</div>
+    <div class="pill" id="time">0:00</div>
+    <div class="pill" id="moves">0 mov.</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="stage" id="stage">
+    <div class="board-wrap"><div class="cabinet"><div class="board" id="board"></div></div></div>
+  </div>
+
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <span class="big-emoji">🪞</span>
+      <h2>Memorama del Botiquín</h2>
+      <p>Cada puertita del botiquín esconde algo. ¿Recuerdas dónde quedó cada cosa?</p>
+      <div class="howto"><ul>
+        <li>Toca dos puertitas para abrirlas.</li>
+        <li>Si son iguales, se quedan abiertas.</li>
+        <li>Encuentra las 8 parejas con los menos movimientos posibles.</li>
+      </ul></div>
+      <div class="actions"><button class="btn pink" id="go">Abrir el botiquín</button></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const board = document.getElementById("board");
+  const movesEl = document.getElementById("moves"), timeEl = document.getElementById("time");
+  const items = ["🪥", "🧼", "🧽", "🧴", "🪒", "🛁", "🦆", "🧻", "🩹", "💊", "🪮", "🧸"];
+  const colors = ["#ffe0ea", "#dff7f0", "#fff3cc", "#e3f0ff", "#efe6ff", "#ffe8d6", "#e8fbd9", "#fde2ff"];
+
+  let first = null, lock = false, moves = 0, found = 0, t0 = 0, timer = 0, playing = false;
+
+  function fmtTime(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+
+  function build() {
+    const chosen = B.shuffle(items).slice(0, 8);
+    const deck = B.shuffle(chosen.concat(chosen));
+    board.innerHTML = "";
+    deck.forEach((e) => {
+      const ci = chosen.indexOf(e);
+      const card = document.createElement("button");
+      card.className = "card";
+      card.style.border = "0"; card.style.padding = "0"; card.style.background = "none";
+      card.dataset.e = e;
+      card.setAttribute("aria-label", "Puertita cerrada");
+      card.innerHTML = `<div class="inner"><div class="face front"></div><div class="face back" style="--c:${colors[ci]}">${e}</div></div>`;
+      card.addEventListener("click", () => flip(card));
+      board.appendChild(card);
+    });
+  }
+
+  function start() {
+    first = null; lock = false; moves = 0; found = 0;
+    movesEl.textContent = "0 mov."; timeEl.textContent = "0:00";
+    build();
+    t0 = Date.now(); playing = true;
+    clearInterval(timer);
+    timer = setInterval(() => { timeEl.textContent = fmtTime(Math.floor((Date.now() - t0) / 1000)); }, 500);
+  }
+
+  function flip(card) {
+    if (!playing || lock || card === first || card.classList.contains("done")) return;
+    card.classList.add("open");
+    card.setAttribute("aria-label", card.dataset.e);
+    B.sfx.click();
+    if (!first) { first = card; return; }
+    moves++;
+    movesEl.textContent = moves + " mov.";
+    B.bump(movesEl);
+    const a = first, b = card;
+    first = null;
+    if (a.dataset.e === b.dataset.e) {
+      setTimeout(() => {
+        a.classList.add("done"); b.classList.add("done");
+        B.sfx.good(); B.vibrate(15);
+        const r = b.getBoundingClientRect();
+        FX.bubbles(r.left + r.width / 2, r.top + r.height / 2, 10);
+        found++;
+        if (found === 8) win();
+      }, 250);
+    } else {
+      lock = true;
+      setTimeout(() => { a.classList.add("nope"); b.classList.add("nope"); B.sfx.bad(); }, 450);
+      setTimeout(() => {
+        a.classList.remove("open", "nope"); b.classList.remove("open", "nope");
+        a.setAttribute("aria-label", "Puertita cerrada"); b.setAttribute("aria-label", "Puertita cerrada");
+        lock = false;
+      }, 900);
+    }
+  }
+
+  function win() {
+    playing = false; clearInterval(timer);
+    const secs = Math.floor((Date.now() - t0) / 1000);
+    setTimeout(() => {
+      B.gameOver({
+        id: "memorama", score: moves, lowerIsBetter: true, good: true,
+        format: (v) => v + " movimientos",
+        detail: "Tiempo: " + fmtTime(secs),
+        titles: [
+          { min: 10, t: "Memoria de Elefante en Bata" },
+          { min: 13, t: "Mente Brillante como Azulejo" },
+          { min: 17, t: "Buen Ojo de Espejo" },
+          { min: 24, t: "Revisor de Botiquines" },
+          { min: 999, t: "¿Dónde Dejé el Cepillo?" },
+        ],
+        onRetry: start,
+      });
+    }, 500);
+  }
+
+  document.getElementById("go").addEventListener("click", () => { B.sfx.swish(); B.overlay("start", false); start(); });
+  build();
+})();
+</script>
+</body>
+</html>
