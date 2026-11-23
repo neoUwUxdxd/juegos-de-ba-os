@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Botonera del Baño</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .board { flex: 1; overflow-y: auto; padding: 6px 16px 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-content: start; max-width: 520px; width: 100%; margin: 0 auto; touch-action: manipulation; }
+    .snd {
+      --c: var(--mint); --cd: var(--mint-deep);
+      appearance: none; border: 0; cursor: pointer; aspect-ratio: 1; border-radius: 24px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--c) 70%, white), var(--c)); color: #23364a;
+      box-shadow: 0 6px 0 var(--cd), 0 12px 18px -10px var(--cd);
+      transition: transform .1s cubic-bezier(.3,1.6,.5,1);
+      font-family: var(--font-title); font-weight: 600; font-size: .85rem; line-height: 1.1; padding: 6px;
+    }
+    .snd span { font-size: 2.3rem; line-height: 1; }
+    .snd:active, .snd.hit { transform: translateY(5px) scale(.96); box-shadow: 0 1px 0 var(--cd); }
+    .snd.hit span { animation: wobble .3s ease-in-out 2; }
+    .c1 { --c: var(--mint); --cd: var(--mint-deep); } .c2 { --c: var(--pink); --cd: var(--pink-deep); }
+    .c3 { --c: var(--yellow); --cd: var(--yellow-deep); } .c4 { --c: var(--blue); --cd: var(--blue-deep); }
+    .c5 { --c: var(--lilac); --cd: #8f6fe0; }
+    .count { text-align: center; color: var(--ink-soft); font-weight: 800; font-size: .9rem; padding: 0 16px 4px; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="../index.html" aria-label="Volver al menú"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">🎺</span>Botonera</div>
+    <div class="pill" id="cnt">0</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="count">Toca los botones · usa audífonos si hay gente afuera 🤫</div>
+  <div class="board" id="board"></div>
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const SOUNDS = [
+    ["💨", "Pedito", "pedo1", 1], ["💨", "Pedo largo", "pedo2", 2], ["🎺", "Trompeta", "pedo3", 3],
+    ["🚽", "Cadena", "flush", 4], ["🫧", "Burbujas", "bubbles", 5], ["🦆", "Patito", "quack", 1],
+    ["💧", "Gota", "drop", 4], ["🧻", "Papel", "paper", 3], ["🚪", "Puerta", "door", 2],
+    ["✊", "Toc toc", "knock", 5], ["👏", "Aplausos", "clap", 1], ["🥁", "Ba dum tss", "rim", 2],
+    ["😂", "Risas", "laugh", 3], ["😗", "Silbido", "whistle", 4], ["🤧", "Estornudo", "sneeze", 5],
+  ];
+  let ac = null;
+  function ctx() { try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); return ac; } catch (e) { return null; } }
+  function osc(o) {
+    const c = ctx(); if (!c) return;
+    const t0 = c.currentTime + (o.delay || 0), d = o.dur;
+    const os = c.createOscillator(), g = c.createGain();
+    os.type = o.type || "sine";
+    os.frequency.setValueAtTime(o.f0, t0);
+    if (o.f1) os.frequency.exponentialRampToValueAtTime(o.f1, t0 + d);
+    let node = os;
+    if (o.lfo) {
+      const l = c.createOscillator(), lg = c.createGain();
+      l.frequency.value = o.lfo; lg.gain.value = o.depth || 20;
+      l.connect(lg).connect(os.frequency); l.start(t0); l.stop(t0 + d + 0.05);
+    }
+    if (o.lp) { const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = o.lp; node.connect(f); node = f; }
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.vol || 0.3, t0 + (o.att || 0.02));
+    g.gain.setValueAtTime(o.vol || 0.3, t0 + d * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    node.connect(g).connect(c.destination);
+    os.start(t0); os.stop(t0 + d + 0.05);
+  }
+  function noise(o) {
+    const c = ctx(); if (!c) return;
+    const t0 = c.currentTime + (o.delay || 0), len = Math.floor(c.sampleRate * o.dur);
+    const buf = c.createBuffer(1, len, c.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, o.decay || 1);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const f = c.createBiquadFilter(); f.type = o.ftype || "bandpass"; f.frequency.value = o.freq || 1000; f.Q.value = o.q || 1;
+    if (o.f1) f.frequency.exponentialRampToValueAtTime(o.f1, t0 + o.dur);
+    const g = c.createGain(); g.gain.value = o.vol || 0.3;
+    src.connect(f).connect(g).connect(c.destination); src.start(t0);
+  }
+  const PLAY = {
+    pedo1: () => { osc({ type: "sawtooth", f0: 95, f1: 70, dur: 0.35, lfo: 28, depth: 25, lp: 600, vol: 0.45 }); noise({ dur: 0.3, freq: 180, q: 2, vol: 0.25 }); },
+    pedo2: () => { osc({ type: "sawtooth", f0: 120, f1: 55, dur: 1.3, lfo: 22, depth: 30, lp: 500, vol: 0.45 }); noise({ dur: 1.2, freq: 150, q: 1.5, vol: 0.2 }); },
+    pedo3: () => { osc({ type: "square", f0: 150, f1: 110, dur: 0.7, lfo: 9, depth: 18, lp: 1200, vol: 0.25 }); osc({ type: "square", f0: 110, f1: 70, dur: 0.4, lfo: 30, depth: 20, lp: 700, vol: 0.25, delay: 0.65 }); },
+    flush: () => B.sfx.flush(),
+    bubbles: () => { for (let i = 0; i < 7; i++) osc({ f0: B.rand(300, 600), f1: B.rand(900, 1600), dur: 0.08, vol: 0.18, delay: i * 0.09 + Math.random() * 0.05 }); },
+    quack: () => { osc({ type: "sawtooth", f0: 520, f1: 380, dur: 0.14, lp: 1800, vol: 0.3 }); osc({ type: "sawtooth", f0: 520, f1: 360, dur: 0.16, lp: 1800, vol: 0.3, delay: 0.2 }); },
+    drop: () => osc({ f0: 900, f1: 200, dur: 0.18, vol: 0.35 }),
+    paper: () => { for (let i = 0; i < 6; i++) noise({ dur: 0.07, freq: 3000, q: 0.8, vol: 0.25, delay: i * 0.08 }); },
+    door: () => osc({ type: "sawtooth", f0: 260, f1: 760, dur: 1.1, lfo: 14, depth: 40, lp: 2200, vol: 0.18 }),
+    knock: () => { [0, 0.18, 0.55, 0.73].forEach((d) => { osc({ f0: 160, f1: 70, dur: 0.12, vol: 0.5, delay: d }); noise({ dur: 0.05, freq: 400, vol: 0.3, delay: d }); }); },
+    clap: () => { for (let i = 0; i < 16; i++) noise({ dur: 0.06, freq: 1500, q: 0.7, vol: 0.3, delay: i * 0.07 + Math.random() * 0.04, decay: 3 }); },
+    rim: () => { osc({ f0: 180, f1: 90, dur: 0.15, vol: 0.5 }); osc({ f0: 160, f1: 80, dur: 0.15, vol: 0.5, delay: 0.22 }); noise({ dur: 0.6, freq: 7000, q: 0.5, ftype: "highpass", vol: 0.25, delay: 0.42, decay: 2 }); },
+    laugh: () => { [0, 0.16, 0.32, 0.48, 0.64].forEach((d, i) => osc({ type: "square", f0: 520 - i * 40, f1: 380 - i * 30, dur: 0.11, lp: 1400, vol: 0.12, delay: d })); },
+    whistle: () => { osc({ f0: 900, f1: 1800, dur: 0.35, vol: 0.18 }); osc({ f0: 1800, f1: 700, dur: 0.5, vol: 0.18, delay: 0.38 }); },
+    sneeze: () => { osc({ type: "triangle", f0: 400, f1: 900, dur: 0.5, vol: 0.12 }); noise({ dur: 0.35, freq: 2500, f1: 600, q: 0.6, vol: 0.5, delay: 0.5, decay: 1.5 }); },
+  };
+  let count = B.store.get("count:sonidos", 0);
+  $("cnt").textContent = count;
+  $("board").innerHTML = SOUNDS.map(([e, t, k, c]) => `<button class="snd c${c}" data-k="${k}"><span>${e}</span>${t}</button>`).join("");
+  document.querySelectorAll(".snd").forEach((b) => b.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    if (B.isMuted()) { FX.toast("🔇 Activa el sonido arriba"); return; }
+    PLAY[b.dataset.k]();
+    b.classList.remove("hit"); void b.offsetWidth; b.classList.add("hit");
+    B.vibrate(10);
+    count++; B.store.set("count:sonidos", count); $("cnt").textContent = count;
+    if (count === 30 && window.Logros) Logros.check();
+  }));
+  Sprites.favicon("sound");
+})();
+</script>
+</body>
+</html>
