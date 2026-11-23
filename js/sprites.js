@@ -14,7 +14,7 @@
     trophy: "🏆", clock: "⏰", calc: "🧮", check: "✅", cross: "❌", grid: "🎨", laugh: "😂", rocket: "🚀",
     lungs: "🫁", door: "🚪", home: "🏠", sound: "🔊", mute: "🔇", sun: "☀️", moon: "🌙", undo: "↩️",
     trash: "🗑️", bucket: "🪣", pencil: "✏️", eraser: "🧽", download: "💾", arrowL: "⬅️", arrowR: "➡️",
-    fire: "🔥", man: "🚹", woman: "🚺", child: "🚸",
+    fire: "🔥", cards: "🃏", money: "💸", tie: "👔", liar: "🤥", notebook: "📓", cap: "🎓", man: "🚹", woman: "🚺", child: "🚸",
   };
   const FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
   const emoji = (name) => E[name] || "❓";

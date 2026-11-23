@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Zona Adultos</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/doors.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
+  <script src="../js/jefe.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .entry .icon-btn { background: rgba(255,255,255,.85); }
+    .entry { background: linear-gradient(180deg, rgba(255,255,255,.25), transparent 40%), linear-gradient(135deg, var(--lilac), color-mix(in srgb, var(--lilac) 50%, var(--pink))); box-shadow: 0 8px 0 #8f6fe0, 0 18px 30px -12px rgba(143,111,224,.6); }
+    .boss-tip { display: flex; gap: 12px; align-items: center; margin-top: 18px; padding: 14px 16px; border-radius: var(--radius); background: var(--card); border: 2px solid var(--card-edge); box-shadow: var(--shadow); font-weight: 700; font-size: .92rem; }
+    .boss-tip span { font-size: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="entry">
+      <div class="entry-top">
+        <a class="icon-btn" href="../index.html" aria-label="Volver al menú principal"><i data-sprite="door"></i></a>
+        <button class="icon-btn" id="mute" aria-label="Silenciar"></button>
+      </div>
+      <h1>Zona<br>adultos</h1>
+      <span class="age">15+ AÑOS</span>
+      <p>Para quien ya paga la renta y aún así se encierra en el baño.</p>
+    </header>
+
+    <div class="wayfind"><span>Juegos</span><span class="mono">↓</span></div>
+    <main class="doors">
+      <a class="door" style="--c: var(--pink)" href="nonograma.html" data-id="nonograma" data-fmt="time">
+        <div class="door-top"><span class="num">A1</span></div>
+        <div class="door-pic"><i data-sprite="grid"></i></div>
+        <h2>Nonograma del azulejo</h2>
+        <div class="door-meta"><span>Lógica</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--blue)" href="sopa.html" data-id="sopa" data-fmt="time">
+        <div class="door-top"><span class="num">A2</span></div>
+        <div class="door-pic"><i data-sprite="pencil"></i></div>
+        <h2>Sopa de letras</h2>
+        <div class="door-meta"><span>Palabras</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--green)" href="solitario.html" data-id="solitario" data-fmt="time">
+        <div class="door-top"><span class="num">A3</span></div>
+        <div class="door-pic"><i data-sprite="cards"></i></div>
+        <h2>Solitario</h2>
+        <div class="door-meta"><span>Cartas</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--lilac)" href="trivia-pro.html" data-id="triviapro" data-fmt="pts">
+        <div class="door-top"><span class="num">A4</span></div>
+        <div class="door-pic"><i data-sprite="cap"></i></div>
+        <h2>Trivia difícil</h2>
+        <div class="door-meta"><span>Cultura</span><span class="best"></span></div>
+      </a>
+    </main>
+
+    <div class="wayfind"><span>Utilidades del trono</span><span class="mono">↓</span></div>
+    <div class="doors">
+      <a class="door" style="--c: var(--yellow)" href="sueldo.html" data-id="" data-fmt="none">
+        <div class="door-top"><span class="num"></span></div>
+        <div class="door-pic"><i data-sprite="money"></i></div>
+        <h2>Sueldo del trono</h2>
+        <div class="door-meta"><span>Cronómetro</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--orange)" href="excusas.html" data-id="" data-fmt="none">
+        <div class="door-top"><span class="num"></span></div>
+        <div class="door-pic"><i data-sprite="liar"></i></div>
+        <h2>Generador de excusas</h2>
+        <div class="door-meta"><span>Humor</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--mint)" href="diario.html" data-id="" data-fmt="none">
+        <div class="door-top"><span class="num"></span></div>
+        <div class="door-pic"><i data-sprite="notebook"></i></div>
+        <h2>Diario del baño</h2>
+        <div class="door-meta"><span>Privado</span><span class="best"></span></div>
+      </a>
+      <div class="door" style="--c: var(--pink)" onclick="Jefe.toggle(true)" role="button" tabindex="0">
+        <div class="door-pic"><i data-sprite="tie"></i></div>
+        <h2>Botón de jefe</h2>
+        <div class="door-meta"><span>Pruébalo</span><span>Toca aquí</span></div>
+      </div>
+    </div>
+
+    <div class="boss-tip"><span>👔</span><div>El botón de corbata de abajo a la derecha está en todas las páginas de esta zona. Tócalo y aparece una hoja de cálculo aburrida. Toca la hoja (o Esc) para volver.</div></div>
+
+    <a class="btn ghost back" href="../index.html">Volver al pasillo</a>
+  </div>
+  <script>
+    (function () {
+      const B = window.Bano;
+      const mmss = (v) => Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0");
+      document.querySelectorAll("a.door").forEach((door) => {
+        const f = door.dataset.fmt, b = door.dataset.id ? B.best(door.dataset.id) : null;
+        door.querySelector(".best").textContent = f === "none" ? "Abrir" : b === null ? "Nuevo" : "🏆 " + (f === "time" ? mmss(b) : b + " pts");
+        door.addEventListener("click", (e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); B.sfx.flush(); setTimeout(() => { location.href = door.getAttribute("href"); }, 250); });
+      });
+      Sprites.favicon("tie");
+    })();
+  </script>
+</body>
+</html>
