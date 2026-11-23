@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="../css/kids.css">
   <script src="../js/common.js"></script>
   <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
   <script src="../js/sprites.js"></script>
   <script src="../js/kids.js"></script>
   <style>
@@ -110,6 +112,7 @@
     trophies++; stars = 0;
     B.store.set("kids:trophies", trophies); B.store.set("kids:stars", 0);
     B.overlay("winBox", false); render(); K.say("¡Tabla nueva! A ganar más estrellas.");
+    if (window.Logros) Logros.check();
   });
   K.hold($("reset"), 2000, () => { stars = 0; B.store.set("kids:stars", 0); render(); FX.toast("Tabla borrada"); });
   if (stars >= 10) B.overlay("winBox", true);

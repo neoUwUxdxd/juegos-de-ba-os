@@ -46,6 +46,37 @@ Para salir de la zona, un adulto mantiene presionado el botón de arriba.
 | **Reflejos Relámpago**: toca en cuanto se ponga verde. | Reacción |
 | **Adivina la Palabra**: adivina letra por letra antes de que se acabe el papel. | Palabras |
 
+### 🎁 Extras
+
+- **Mi perfil** (`perfil.html`): regístrate con apodo, edad y un avatar personalizable. Según tu edad te recomienda una zona.
+- **Medallas**: 20 insignias por jugar, por récords y por lavarte las manos.
+- **Reto del día**: un reto distinto cada día en alguno de los juegos.
+- **Botonera del baño**: 15 sonidos graciosos sintetizados.
+- **Shorts**: videos de YouTube Shorts que eligen los papás, con un límite de minutos por día.
+
+### ☁️ Cuentas en línea (Firebase)
+
+Sin configurar nada, el perfil se guarda **solo en el celular**. Para que haya cuentas con correo y contraseña que funcionen en cualquier celular:
+
+1. Entra a https://console.firebase.google.com y crea un proyecto (gratis).
+2. En **Authentication → Método de inicio de sesión**, activa **Correo electrónico/contraseña**.
+3. En **Firestore Database**, crea la base de datos y pega estas reglas en la pestaña **Reglas**:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{db}/documents {
+       match /usuarios/{uid} {
+         allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+     }
+   }
+   ```
+4. En **Configuración del proyecto → Tus apps**, agrega una app **Web** y copia el objeto `firebaseConfig`.
+5. Pégalo en `js/firebase-config.js` (en lugar de `null`) y súbelo a `main`.
+6. En **Authentication → Configuración → Dominios autorizados**, agrega `neouwuxdxd.github.io`.
+
+Solo se guardan el apodo, la edad, el avatar y el progreso de cada quien. Si la persona tiene menos de 13 años, se pide el correo de un adulto y su permiso.
+
 ### Diseño
 
 Azulejos pastel de baño con tarjetas suaves, emojis, la mascota **Don Rollo** y un «certificado de visita» con un título gracioso al terminar cada partida. Tipografías Fredoka y Nunito. Tiene modo noche, récords guardados en el navegador, sonidos sintetizados con botón de silencio y vibración.
