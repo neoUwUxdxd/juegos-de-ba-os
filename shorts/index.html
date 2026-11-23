@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Shorts</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .feed { flex: 1; min-height: 0; overflow-y: auto; scroll-snap-type: y mandatory; touch-action: pan-y; }
+    .slide { height: 100%; scroll-snap-align: start; display: grid; place-items: center; padding: 6px 16px 14px; }
+    .frame { position: relative; height: 100%; max-height: 100%; aspect-ratio: 9 / 16; max-width: 100%; border-radius: 22px; overflow: hidden; background: #23364a; box-shadow: var(--shadow); }
+    .frame iframe, .frame img { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; object-fit: cover; }
+    .frame .ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 3rem; color: #fff; background: rgba(0,0,0,.25); }
+    .empty { margin: 20px 16px; text-align: center; }
+    .empty .big { font-size: 4rem; }
+    .hold2 { position: relative; overflow: hidden; appearance: none; border: 2px solid var(--card-edge); background: var(--card); border-radius: 999px; padding: 8px 14px; font-weight: 800; font-size: .8rem; box-shadow: var(--shadow); cursor: pointer; touch-action: none; color: var(--ink); }
+    .hold2::before { content: ""; position: absolute; inset: 0; background: var(--pink); transform-origin: left; transform: scaleX(var(--p, 0)); }
+    .hold2 span { position: relative; }
+    .bar2 { display: flex; justify-content: center; padding: 0 16px 8px; }
+    .vlist { list-style: none; padding: 0; margin: 10px 0; max-height: 34vh; overflow-y: auto; }
+    .vlist li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(35,54,74,.08); }
+    .vlist img { width: 54px; height: 40px; object-fit: cover; border-radius: 8px; flex: none; }
+    .vlist code { flex: 1; font-size: .8rem; overflow: hidden; text-overflow: ellipsis; }
+    .vlist button { border: 0; background: #ffe1e1; color: #c0392b; border-radius: 10px; padding: 6px 10px; font-weight: 800; cursor: pointer; }
+    .row { display: flex; gap: 8px; }
+    .row input { flex: 1; min-height: 46px; border-radius: 12px; border: 2px solid rgba(35,54,74,.15); padding: 0 12px; font: inherit; }
+    .row select { min-height: 46px; border-radius: 12px; border: 2px solid rgba(35,54,74,.15); padding: 0 10px; font: inherit; }
+    .msg { min-height: 1.3em; font-weight: 800; color: var(--danger); margin-top: 6px; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="../index.html" aria-label="Volver al menú"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">📺</span>Shorts</div>
+    <div class="pill" id="left">5:00</div>
+    
+  </header>
+  <div class="bar2"><button class="hold2" id="parents"><span>⚙️ Papás: mantén para editar</span></button></div>
+  <div class="feed" id="feed"></div>
+
+  <div class="overlay" id="lock">
+    <div class="panel">
+      <span class="big-emoji">⏰</span>
+      <h2>¡Se acabó el tiempo de shorts!</h2>
+      <p>Por hoy ya fue suficiente pantalla de videos. Mejor juega algo… o lávate las manos 🧼</p>
+      <div class="actions"><a class="btn" href="../index.html" style="text-decoration:none">🎮 Ir a los juegos</a></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="panel">
+    <div class="panel" style="text-align:left">
+      <h2>⚙️ Panel para papás</h2>
+      <p>Pega enlaces de YouTube Shorts que hayas revisado. Se guardan en este celular.</p>
+      <div class="row"><input id="url" placeholder="https://youtube.com/shorts/…" inputmode="url"><button class="btn" id="add" style="min-height:46px;padding:0 16px">Agregar</button></div>
+      <div class="msg" id="msg"></div>
+      <ul class="vlist" id="vlist"></ul>
+      <p style="margin:12px 0 6px;font-weight:800;color:var(--ink)">Tiempo máximo por día</p>
+      <div class="row"><select id="limit"><option value="3">3 minutos</option><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option><option value="30">30 minutos</option></select><button class="btn ghost" id="more" style="min-height:46px">+5 min hoy</button></div>
+      <div class="actions"><button class="btn blue" id="close">Listo</button></div>
+    </div>
+  </div>
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const today = Perfil.dayKey();
+  let list = B.store.get("shorts:list", []);
+  let limit = B.store.get("shorts:limit", 5);
+  let used = B.store.get("shorts:used:" + today, 0);
+  let bonus = B.store.get("shorts:bonus:" + today, 0);
+  const feed = $("feed");
+  const parseId = (u) => { const m = String(u).match(/(?:shorts\/|v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/) || String(u).match(/^([A-Za-z0-9_-]{11})$/); return m ? m[1] : null; };
+  const remaining = () => Math.max(0, (limit + bonus) * 60 - used);
+  function paintLeft() { const r = remaining(); $("left").textContent = "⏱️ " + Math.floor(r / 60) + ":" + String(Math.floor(r % 60)).padStart(2, "0"); }
+  function render() {
+    if (!list.length) {
+      feed.innerHTML = `<div class="plate empty"><div class="big">📺</div><h2>Todavía no hay shorts</h2><p class="muted">Pide a un adulto que mantenga presionado «Papás» y agregue videos que ya revisó.</p></div>`;
+      return;
+    }
+    feed.innerHTML = list.map((id) => `<div class="slide" data-id="${id}"><div class="frame"><img alt="" loading="lazy" src="https://i.ytimg.com/vi/${id}/hqdefault.jpg"><div class="ph">▶️</div></div></div>`).join("");
+    const io = new IntersectionObserver((entries) => entries.forEach((en) => {
+      const fr = en.target.querySelector(".frame"), id = en.target.dataset.id;
+      const ifr = fr.querySelector("iframe");
+      if (en.isIntersecting && en.intersectionRatio > 0.6) {
+        if (!ifr && remaining() > 0) fr.insertAdjacentHTML("beforeend", `<iframe src="https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0&modestbranding=1&autoplay=1&loop=1&playlist=${id}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Short"></iframe>`);
+      } else if (ifr) ifr.remove();
+    }), { root: feed, threshold: [0, 0.6, 1] });
+    feed.querySelectorAll(".slide").forEach((s) => io.observe(s));
+  }
+  function lockIfDone() {
+    if (remaining() > 0) return false;
+    feed.querySelectorAll("iframe").forEach((f) => f.remove());
+    B.overlay("lock", true);
+    return true;
+  }
+  setInterval(() => {
+    if (document.hidden || !list.length || $("panel").classList.contains("show") || $("lock").classList.contains("show")) return;
+    used++; B.store.set("shorts:used:" + today, used); paintLeft(); lockIfDone();
+  }, 1000);
+  // Panel para papás
+  function paintPanel() {
+    $("limit").value = String(limit);
+    $("vlist").innerHTML = list.length ? list.map((id, i) => `<li><img alt="" src="https://i.ytimg.com/vi/${id}/default.jpg"><code>${id}</code><button data-i="${i}">Quitar</button></li>`).join("") : '<li class="muted">Sin videos todavía.</li>';
+    $("vlist").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { list.splice(+b.dataset.i, 1); save(); }));
+  }
+  function save() { B.store.set("shorts:list", list); paintPanel(); render(); }
+  $("add").addEventListener("click", () => {
+    const id = parseId($("url").value.trim());
+    if (!id) { $("msg").textContent = "Ese enlace no parece de YouTube."; return; }
+    if (list.includes(id)) { $("msg").textContent = "Ese video ya está en la lista."; return; }
+    list.push(id); $("url").value = ""; $("msg").textContent = ""; B.sfx.good(); save();
+  });
+  $("limit").addEventListener("change", () => { limit = +$("limit").value; B.store.set("shorts:limit", limit); paintLeft(); });
+  $("more").addEventListener("click", () => { bonus += 5; B.store.set("shorts:bonus:" + today, bonus); paintLeft(); B.overlay("lock", false); FX.toast("+5 minutos para hoy"); });
+  $("close").addEventListener("click", () => { B.overlay("panel", false); if (!lockIfDone()) render(); });
+  (function hold(el, ms, done) {
+    let t0 = 0, raf = 0;
+    const tick = (now) => { const p = Math.min(1, (now - t0) / ms); el.style.setProperty("--p", p); if (p >= 1) { el.style.setProperty("--p", 0); done(); return; } raf = requestAnimationFrame(tick); };
+    el.addEventListener("pointerdown", (e) => { e.preventDefault(); t0 = performance.now(); raf = requestAnimationFrame(tick); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => el.addEventListener(ev, () => { cancelAnimationFrame(raf); el.style.setProperty("--p", 0); }));
+  })($("parents"), 1800, () => { B.sfx.good(); paintPanel(); B.overlay("lock", false); B.overlay("panel", true); });
+  paintLeft();
+  if (!lockIfDone()) render();
+  Sprites.favicon("tub");
+})();
+</script>
+</body>
+</html>

@@ -140,12 +140,14 @@
       end.id = "end"; end.className = "overlay";
       document.body.appendChild(end);
     }
+    const prof = window.Account && window.Account.profile();
+    const who = prof && prof.apodo ? " de " + String(prof.apodo).replace(/[<>&"]/g, "") : "";
     end.innerHTML = `
       <div class="panel">
         <div class="mascot">${Bano.mascot(mood)}<div class="bubble">${pick(phrases)}</div></div>
         <div class="certificate">
           ${res.isRecord ? '<div class="stamp">¡NUEVO RÉCORD!</div>' : ""}
-          <div class="cert-label">Certificado de visita</div>
+          <div class="cert-label">Certificado de visita${who}</div>
           <div class="cert-title">${title}</div>
           <div class="cert-score">${fmt(o.score)}</div>
           <div class="cert-best">${o.detail ? o.detail + " · " : ""}Récord: ${res.best === null ? "—" : fmt(res.best)}</div>
@@ -159,6 +161,7 @@
       sfx.click(); overlay(end, false); o.onRetry && o.onRetry();
     });
     requestAnimationFrame(() => overlay(end, true));
+    if (window.Perfil) window.Perfil.afterGame(o.id, o.score, o.lowerIsBetter);
     if (res.isRecord) { sfx.win(); Bano.fx && Bano.fx.confetti(); vibrate([40, 60, 40]); }
     return res;
   }
