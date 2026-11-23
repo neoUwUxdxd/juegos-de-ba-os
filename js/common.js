@@ -42,7 +42,7 @@
   function best(id) { return store.get("best:" + id, null); }
   function plays(id) { return store.get("plays:" + id, 0); }
   function totalPlays() {
-    return ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia", "aterriza", "mate", "verdad"]
+    return ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia", "aterriza", "mate", "verdad", "tiro", "grifos", "laberinto", "reflejos", "ahorcado"]
       .reduce((s, id) => s + plays(id), 0);
   }
   function saveScore(id, score, lowerIsBetter) {
