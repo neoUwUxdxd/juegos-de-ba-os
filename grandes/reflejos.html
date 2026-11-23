@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Reflejos Relámpago</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .zone {
+      flex: 1; margin: 10px 16px 18px; border-radius: 32px; cursor: pointer; touch-action: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px;
+      background: var(--card); box-shadow: var(--shadow); transition: background .08s;
+      font-family: var(--font-title); color: var(--ink);
+    }
+    .zone .big { font-size: 4.2rem; line-height: 1; }
+    .zone h2 { margin: 0; font-size: 2.2rem; }
+    .zone p { margin: 0; font-weight: 700; color: var(--ink-soft); }
+    .zone.wait { background: #ff8f8f; color: #fff; } .zone.wait p { color: #fff; }
+    .zone.go { background: #3ccf8e; color: #fff; } .zone.go p { color: #fff; }
+    .zone.res { background: #ffd45e; color: #5a3d00; } .zone.res p { color: #5a3d00; }
+    .times { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; padding: 0 16px; }
+    .times span { background: var(--card); border-radius: 999px; padding: 4px 10px; font-weight: 800; font-size: .85rem; box-shadow: var(--shadow); }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G9</span>Reflejos</div>
+    <div class="pill" id="rnd">1/5</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="times" id="times"></div>
+  <div class="zone" id="zone"><span class="big">🚦</span><h2>Toca para empezar</h2><p>5 rondas</p></div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G9</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="fire"></i></span><div><h2>Reflejos relámpago</h2><p>¿Qué tan rápido reaccionas? Más rápido que alguien que escucha «¡se acabó el papel!».</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Espera con la pantalla en <b>rojo</b>… no toques todavía.</span></li>
+          <li><b>2</b><span>Cuando se ponga <b>verde</b>, ¡toca lo más rápido que puedas!</span></li>
+          <li><b>3</b><span>Si tocas antes de tiempo, esa ronda cuenta como 1 segundo.</span></li>
+          <li><b>4</b><span>5 rondas. Gana el promedio más bajo.</span></li>
+        </ol>
+        <div class="actions"><button class="btn green" id="go">Estoy listo</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const zone = $("zone"), ROUNDS = 5;
+  let state = "idle", times = [], t0 = 0, timer = 0;
+  function set(cls, big, h, p) { zone.className = "zone " + cls; zone.innerHTML = `<span class="big">${big}</span><h2>${h}</h2><p>${p}</p>`; }
+  function paintTimes() { $("times").innerHTML = times.map((t) => `<span>${t} ms</span>`).join(""); $("rnd").textContent = Math.min(times.length + 1, ROUNDS) + "/" + ROUNDS; }
+  function arm() {
+    state = "wait"; set("wait", "✋", "Espera…", "No toques todavía");
+    timer = setTimeout(() => { state = "go"; t0 = performance.now(); set("go", "⚡", "¡YA!", "¡Toca!"); B.tone(880, 0.12, { type: "square", vol: 0.1 }); }, B.rand(1300, 3800));
+  }
+  zone.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (state === "ready") return arm();
+    if (state === "wait") {
+      clearTimeout(timer); times.push(1000); paintTimes();
+      B.sfx.bad(); B.vibrate(120); FX.shake(zone);
+      state = "res"; set("res", "😬", "¡Muy pronto!", "Cuenta como 1000 ms · toca para seguir");
+      return;
+    }
+    if (state === "go") {
+      const ms = Math.round(performance.now() - t0);
+      times.push(ms); paintTimes(); B.sfx.good(); B.vibrate(15);
+      const msg = ms < 220 ? "¡Rayo!" : ms < 300 ? "¡Rapidísimo!" : ms < 400 ? "¡Bien!" : "Uf, te dormiste";
+      state = "res"; set("res", ms < 300 ? "⚡" : "⏱️", ms + " ms", msg + " · toca para seguir");
+      return;
+    }
+    if (state === "res") { if (times.length >= ROUNDS) return end(); arm(); }
+  });
+  function start() { times = []; paintTimes(); state = "ready"; set("", "🚦", "Toca para empezar", "Ronda 1 de " + ROUNDS); }
+  function end() {
+    state = "over";
+    const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    B.gameOver({
+      id: "reflejos", score: avg, lowerIsBetter: true, good: avg < 350, back: "index.html",
+      format: (v) => v + " ms", detail: "Mejor: " + Math.min(...times) + " ms",
+      titles: [
+        { min: 230, t: "Más Rápido que la Cadena" },
+        { min: 290, t: "Reflejos de Gato" },
+        { min: 360, t: "Ágil del Baño" },
+        { min: 450, t: "Se Distrajo con el Champú" },
+        { min: 99999, t: "Se Quedó Dormido en el Trono" },
+      ],
+      onRetry: start,
+    });
+  }
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
+  Sprites.favicon("fire");
+})();
+</script>
+</body>
+</html>

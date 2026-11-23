@@ -29,7 +29,7 @@
       <p>Retos de verdad para mentes que no se aburren ni sentadas.</p>
     </header>
 
-    <div class="wayfind"><span>Cubículos G1–G5</span><span class="mono">↓</span></div>
+    <div class="wayfind"><span>Cubículos G1–G10</span><span class="mono">↓</span></div>
 
     <main class="doors">
       <a class="door" style="--c: var(--orange)" href="aterriza.html" data-id="aterriza" data-fmt="pts">
@@ -56,11 +56,41 @@
         <h2>Pixel azulejo</h2>
         <div class="door-meta"><span>Creativo</span><span class="best"></span></div>
       </a>
-      <a class="door" style="--c: var(--yellow); grid-column: 1 / -1" href="chistes.html" data-id="chistes" data-fmt="none">
+      <a class="door" style="--c: var(--yellow)" href="chistes.html" data-id="chistes" data-fmt="none">
         <div class="door-top"><span class="num">G5</span><span class="lock"><span class="slide"><b>LIBRE</b><b>OCUPADO</b></span></span></div>
         <div class="door-pic"><i data-sprite="laugh"></i></div>
         <h2>Chistes del cubículo</h2>
         <div class="door-meta"><span>Humor</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--blue)" href="tiro.html" data-id="tiro" data-fmt="pts">
+        <div class="door-top"><span class="num">G6</span><span class="lock"><span class="slide"><b>LIBRE</b><b>OCUPADO</b></span></span></div>
+        <div class="door-pic"><i data-sprite="trash"></i></div>
+        <h2>Tiro al cesto</h2>
+        <div class="door-meta"><span>Puntería</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--green)" href="grifos.html" data-id="grifos" data-fmt="rondas">
+        <div class="door-top"><span class="num">G7</span><span class="lock"><span class="slide"><b>LIBRE</b><b>OCUPADO</b></span></span></div>
+        <div class="door-pic"><i data-sprite="faucet"></i></div>
+        <h2>Grifos en orden</h2>
+        <div class="door-meta"><span>Memoria</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--lilac)" href="laberinto.html" data-id="laberinto" data-fmt="niv">
+        <div class="door-top"><span class="num">G8</span><span class="lock"><span class="slide"><b>LIBRE</b><b>OCUPADO</b></span></span></div>
+        <div class="door-pic"><i data-sprite="duck"></i></div>
+        <h2>Laberinto del drenaje</h2>
+        <div class="door-meta"><span>Laberinto</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--red)" href="reflejos.html" data-id="reflejos" data-fmt="ms">
+        <div class="door-top"><span class="num">G9</span><span class="lock"><span class="slide"><b>LIBRE</b><b>OCUPADO</b></span></span></div>
+        <div class="door-pic"><i data-sprite="fire"></i></div>
+        <h2>Reflejos relámpago</h2>
+        <div class="door-meta"><span>Reacción</span><span class="best"></span></div>
+      </a>
+      <a class="door" style="--c: var(--orange)" href="ahorcado.html" data-id="ahorcado" data-fmt="pts">
+        <div class="door-top"><span class="num">G10</span><span class="lock"><span class="slide"><b>LIBRE</b><b>OCUPADO</b></span></span></div>
+        <div class="door-pic"><i data-sprite="pencil"></i></div>
+        <h2>Adivina la palabra</h2>
+        <div class="door-meta"><span>Palabras</span><span class="best"></span></div>
       </a>
     </main>
 
@@ -72,7 +102,8 @@
       document.querySelectorAll(".door").forEach((door) => {
         const f = door.dataset.fmt;
         const b = f === "none" ? null : B.best(door.dataset.id);
-        door.querySelector(".best").textContent = f === "none" ? "SIN FIN" : b === null ? "NUEVO" : "★ " + b + " PTS";
+        const unit = { pts: " pts", ms: " ms", rondas: " rondas", niv: " niv." }[f] || "";
+        door.querySelector(".best").textContent = f === "none" ? "Sin fin" : b === null ? "Nuevo" : "🏆 " + b + unit;
         door.addEventListener("click", (e) => {
           if (e.metaKey || e.ctrlKey) return;
           e.preventDefault();

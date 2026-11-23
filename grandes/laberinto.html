@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Laberinto del Drenaje</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .dpad { display: grid; grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(2, 54px); gap: 8px; justify-content: center; padding: 6px 0 max(14px, env(safe-area-inset-bottom)); }
+    .dpad button { appearance: none; border: 0; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); font-size: 1.6rem; cursor: pointer; }
+    .dpad button:active { transform: translateY(3px); }
+    .dpad .u { grid-column: 2; } .dpad .l { grid-column: 1; grid-row: 2; } .dpad .d { grid-column: 2; grid-row: 2; } .dpad .r { grid-column: 3; grid-row: 2; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G8</span>Laberinto</div>
+    <div class="pill" id="lvl">Nivel 1</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="paper-bar"><i id="bar"></i><b id="barTxt">60s</b></div>
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+  <div class="dpad">
+    <button class="u" data-d="0" aria-label="Arriba">⬆️</button>
+    <button class="l" data-d="3" aria-label="Izquierda">⬅️</button>
+    <button class="d" data-d="2" aria-label="Abajo">⬇️</button>
+    <button class="r" data-d="1" aria-label="Derecha">➡️</button>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G8</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="duck"></i></span><div><h2>Laberinto del drenaje</h2><p>El patito se coló por el desagüe. Llévalo de vuelta al inodoro antes de que se acabe el tiempo.</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Desliza el dedo (o usa las flechas) para mover al patito 🦆.</span></li>
+          <li><b>2</b><span>El patito avanza solo por el pasillo hasta la siguiente vuelta.</span></li>
+          <li><b>3</b><span>Llega al inodoro 🚽 para pasar de nivel: +12 segundos.</span></li>
+          <li><b>4</b><span>Cada nivel el laberinto crece.</span></li>
+        </ol>
+        <div class="actions"><button class="btn blue" id="go">A nadar</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="pause">
+    <div class="panel">
+      <div class="panel-head"><span>Aviso</span><span>Pausa</span></div>
+      <div class="panel-body">
+        <h2>Juego en pausa</h2>
+        <p>Tranquilo, aquí nadie tiene prisa.</p>
+        <div class="actions"><button class="btn" id="resume">Seguir</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const stage = $("stage"), cv = $("cv");
+  const S = B.fitCanvas(cv, () => draw());
+  const ctx = S.ctx;
+  const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0], BIT = [1, 2, 4, 8], OPP = [2, 3, 0, 1];
+  const MAXT = 90;
+  let n = 7, maze = [], seen = [], duck = { x: 0, y: 0, px: 0, py: 0 }, path = [], level = 0, time = 60, state = "idle", last = 0, timer = 0;
+  function build() {
+    maze = Array.from({ length: n }, () => Array(n).fill(0));
+    const vis = Array.from({ length: n }, () => Array(n).fill(false));
+    const st = [[0, 0]]; vis[0][0] = true;
+    while (st.length) {
+      const [x, y] = st[st.length - 1];
+      const opts = B.shuffle([0, 1, 2, 3]).filter((d) => { const nx = x + DX[d], ny = y + DY[d]; return nx >= 0 && ny >= 0 && nx < n && ny < n && !vis[ny][nx]; });
+      if (!opts.length) { st.pop(); continue; }
+      const d = opts[0], nx = x + DX[d], ny = y + DY[d];
+      maze[y][x] |= BIT[d]; maze[ny][nx] |= BIT[OPP[d]]; vis[ny][nx] = true; st.push([nx, ny]);
+    }
+    seen = Array.from({ length: n }, () => Array(n).fill(false));
+    duck = { x: 0, y: 0, px: 0, py: 0 }; seen[0][0] = true; path = [];
+  }
+  function newLevel() {
+    level++; n = Math.min(14, 6 + level);
+    $("lvl").textContent = "Nivel " + level;
+    build(); draw();
+  }
+  const open = (x, y, d) => (maze[y][x] & BIT[d]) !== 0;
+  const exits = (x, y) => [0, 1, 2, 3].filter((d) => open(x, y, d));
+  function slide(d) {
+    if (state !== "play" || path.length) return;
+    let x = duck.x, y = duck.y, dir = d, steps = 0;
+    while (open(x, y, dir) && steps < 200) {
+      x += DX[dir]; y += DY[dir]; steps++; path.push([x, y]);
+      if (x === n - 1 && y === n - 1) break;
+      const ex = exits(x, y);
+      if (ex.length !== 2) break;
+      const nd = ex.find((e) => e !== OPP[dir]);
+      if (nd !== dir) dir = nd;
+    }
+    if (steps) B.sfx.bubble();
+  }
+  function geom() {
+    const cs = Math.floor(Math.min((S.w - 24) / n, (S.h - 16) / n));
+    return { cs, ox: Math.floor((S.w - cs * n) / 2), oy: Math.floor((S.h - cs * n) / 2) };
+  }
+  function draw() {
+    if (!maze.length) return;
+    ctx.clearRect(0, 0, S.w, S.h);
+    const { cs, ox, oy } = geom();
+    ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.beginPath(); ctx.roundRect(ox - 6, oy - 6, cs * n + 12, cs * n + 12, 14); ctx.fill();
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (seen[y][x]) { ctx.fillStyle = "rgba(103,184,255,.28)"; ctx.fillRect(ox + x * cs + 2, oy + y * cs + 2, cs - 4, cs - 4); }
+    ctx.strokeStyle = "#5b6f84"; ctx.lineWidth = Math.max(2.5, cs * 0.12); ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const X = ox + x * cs, Y = oy + y * cs, m = maze[y][x];
+      if (!(m & 1)) { ctx.moveTo(X, Y); ctx.lineTo(X + cs, Y); }
+      if (!(m & 8)) { ctx.moveTo(X, Y); ctx.lineTo(X, Y + cs); }
+      if (y === n - 1 && !(m & 4)) { ctx.moveTo(X, Y + cs); ctx.lineTo(X + cs, Y + cs); }
+      if (x === n - 1 && !(m & 2)) { ctx.moveTo(X + cs, Y); ctx.lineTo(X + cs, Y + cs); }
+    }
+    ctx.stroke();
+    B.drawSprite(ctx, "toilet", ox + (n - 0.5) * cs, oy + (n - 0.5) * cs, cs * 0.95);
+    B.drawSprite(ctx, "duck", ox + (duck.px + 0.5) * cs, oy + (duck.py + 0.5) * cs, cs * 0.95);
+  }
+  function loop(now) {
+    if (state !== "play") return;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    time -= dt;
+    if (path.length) {
+      const [tx, ty] = path[0];
+      const sp = 16 * dt;
+      duck.px += Math.sign(tx - duck.px) * Math.min(sp, Math.abs(tx - duck.px));
+      duck.py += Math.sign(ty - duck.py) * Math.min(sp, Math.abs(ty - duck.py));
+      if (duck.px === tx && duck.py === ty) {
+        duck.x = tx; duck.y = ty; seen[ty][tx] = true; path.shift();
+        if (tx === n - 1 && ty === n - 1) {
+          path = []; time = Math.min(MAXT, time + 12);
+          const r = cv.getBoundingClientRect(); FX.floatText(r.left + S.w / 2, r.top + 40, "¡Llegó! +12s", "gold");
+          B.sfx.flush(); B.vibrate([20, 40, 20]);
+          newLevel();
+        }
+      }
+    }
+    $("bar").style.transform = `scaleX(${Math.max(0, time) / MAXT})`;
+    $("barTxt").textContent = Math.max(0, Math.ceil(time)) + "s";
+    draw();
+    if (time <= 0) return end();
+    requestAnimationFrame(loop);
+  }
+  function start() { level = 0; time = 60; newLevel(); state = "play"; last = performance.now(); requestAnimationFrame(loop); }
+  function end() {
+    state = "over";
+    const lv = level - 1;
+    B.gameOver({
+      id: "laberinto", score: lv, good: lv >= 3, back: "index.html",
+      format: (v) => v + (v === 1 ? " nivel" : " niveles"), detail: "Laberinto " + n + "×" + n,
+      titles: [
+        { min: 8, t: "Capitán de las Cañerías" },
+        { min: 5, t: "Navegante del Drenaje" },
+        { min: 3, t: "Patito Explorador" },
+        { min: 1, t: "Nadador Despistado" },
+        { min: 0, t: "Se Fue por el Caño" },
+      ],
+      onRetry: start,
+    });
+  }
+  let sw = null;
+  stage.addEventListener("pointerdown", (e) => { sw = { x: e.clientX, y: e.clientY }; });
+  stage.addEventListener("pointermove", (e) => {
+    if (!sw) return;
+    const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+    if (Math.hypot(dx, dy) < 24) return;
+    slide(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
+    sw = null;
+  });
+  stage.addEventListener("pointerup", () => { sw = null; });
+  document.querySelectorAll(".dpad button").forEach((b) => b.addEventListener("pointerdown", (e) => { e.preventDefault(); slide(+b.dataset.d); }));
+  const km = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3 };
+  window.addEventListener("keydown", (e) => { if (e.key in km) { e.preventDefault(); slide(km[e.key]); } });
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
+  $("resume").addEventListener("click", () => { B.overlay("pause", false); state = "play"; last = performance.now(); requestAnimationFrame(loop); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && state === "play") { state = "paused"; B.overlay("pause", true); } });
+  n = 7; build(); draw();
+  Sprites.favicon("duck");
+})();
+</script>
+</body>
+</html>
