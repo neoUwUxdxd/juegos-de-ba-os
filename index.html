@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Juegos de Baño</title>
   <meta name="description" content="Mini juegos cortitos para jugar con una mano mientras estás en el trono.">
-  <meta name="theme-color" content="#f3fbf9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#101a2c" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3fbf9" >
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧻</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -230,14 +229,14 @@
       const isDark = () => {
         const t = root.getAttribute("data-theme");
         if (t) return t === "dark";
-        return window.matchMedia("(prefers-color-scheme: dark)").matches;
+        return false;
       };
       const paint = () => { themeBtn.textContent = isDark() ? "☀️" : "🌙"; };
       paint();
       themeBtn.addEventListener("click", () => {
         const next = isDark() ? "light" : "dark";
         root.setAttribute("data-theme", next);
-        B.store.set("theme", next);
+        B.store.set("theme2", next);
         B.sfx.click(); paint();
       });
     })();
