@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Solitario</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
+  <script src="../js/jefe.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--pink-deep); color: #fff; }
+    .table { position: relative; flex: 1; overflow-y: auto; padding: 4px 12px 90px; }
+    .row { display: grid; grid-template-columns: repeat(7, var(--cw)); gap: 6px; justify-content: center; }
+    .slot { width: var(--cw); height: var(--ch); border-radius: 8px; border: 2px dashed rgba(35,54,74,.18); display: grid; place-items: center; color: rgba(35,54,74,.25); font-size: 1.2rem; position: relative; }
+    .pile { position: relative; width: var(--cw); min-height: var(--ch); }
+    .card {
+      position: absolute; left: 0; width: var(--cw); height: var(--ch); border-radius: 8px; background: #fff;
+      box-shadow: 0 1px 2px rgba(35,54,74,.25), 0 0 0 1px rgba(35,54,74,.12); cursor: pointer;
+      font-family: var(--font-title); font-weight: 600; transition: transform .12s;
+    }
+    .card .c { position: absolute; left: 4px; top: 2px; font-size: calc(var(--cw) * .32); line-height: 1; }
+    .card .m { position: absolute; right: 4px; bottom: 2px; font-size: calc(var(--cw) * .42); line-height: 1; }
+    .card.red { color: #e04f5f; } .card.blk { color: #2c4a66; }
+    .card.down { background: repeating-linear-gradient(45deg, #ff8fb1 0 6px, #ffb3c9 6px 12px); }
+    .card.down > * { display: none; }
+    .card.down::after { content: "🧻"; position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--cw) * .42); }
+    .card.hint { box-shadow: 0 0 0 3px var(--mint), 0 4px 10px rgba(0,0,0,.2); }
+    .card.nope { animation: shake .3s; }
+    .bar { display: flex; gap: 8px; justify-content: center; margin: 4px 0 10px; }
+    .bar button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--card); box-shadow: var(--shadow); font-weight: 800; cursor: pointer; }
+    .bar button.go2 { background: var(--good); color: #fff; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Adultos"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">A3</span>Solitario</div>
+    <div class="pill" id="moves">0 mov.</div><div class="pill" id="time">0:00</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="table" id="table">
+    <div class="bar"><button id="newG">🔀 Nueva mano</button><button id="auto" class="go2" hidden>⚡ Terminar</button></div>
+    <div class="row" id="top"></div>
+    <div class="row" id="tab" style="margin-top:14px"></div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona adultos · A3</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="cards"></i></span><div><h2>Solitario</h2><p>El clásico para pasar el rato en el trono, con cartas de baño.</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Toca una carta y se mueve sola al mejor lugar posible.</span></li>
+          <li><b>2</b><span>Toca el mazo para sacar otra carta. Cuando se acaba, se vuelve a llenar.</span></li>
+          <li><b>3</b><span>Sube todas las cartas a las 4 bases, del As al Rey, por palo.</span></li>
+          <li><b>4</b><span>En las columnas van en orden descendente y alternando rojo y negro.</span></li>
+        </ol>
+        <div class="actions"><button class="btn green" id="go">Repartir</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const SUITS = ["♠", "♥", "♦", "♣"], RANKS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+  const red = (c) => c.s === "♥" || c.s === "♦";
+  let stock = [], waste = [], found = [[], [], [], []], tab = [], moves = 0, t0 = 0, timer = 0, playing = false;
+  function deal() {
+    let deck = [];
+    SUITS.forEach((s) => { for (let r = 1; r <= 13; r++) deck.push({ s, r, up: false }); });
+    deck = B.shuffle(deck);
+    tab = [];
+    for (let i = 0; i < 7; i++) { tab.push(deck.splice(0, i + 1)); tab[i][i].up = true; }
+    stock = deck; waste = []; found = [[], [], [], []]; moves = 0;
+    t0 = Date.now(); playing = true; clearInterval(timer);
+    timer = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); $("time").textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }, 500);
+    render();
+  }
+  function sizes() {
+    const W = Math.min(window.innerWidth - 24, 520);
+    const cw = Math.floor((W - 36) / 7);
+    $("table").style.setProperty("--cw", cw + "px"); $("table").style.setProperty("--ch", Math.round(cw * 1.4) + "px");
+    return cw;
+  }
+  const cardHTML = (c, style, data) => `<div class="card ${c.up ? (red(c) ? "red" : "blk") : "down"}" style="${style}" ${data}><span class="c">${RANKS[c.r]}${c.s}</span><span class="m">${c.s}</span></div>`;
+  function render() {
+    const cw = sizes(), downOff = Math.round(cw * 0.18), upOff = Math.round(cw * 0.42);
+    let top = `<div class="slot" data-loc="s">${stock.length ? cardHTML(stock[stock.length - 1], "", 'data-loc="s"') : "↻"}</div>`;
+    top += `<div class="slot">${waste.length ? cardHTML(waste[waste.length - 1], "", 'data-loc="w"') : ""}</div><div></div>`;
+    found.forEach((f, i) => { top += `<div class="slot" data-loc="f${i}">${f.length ? cardHTML(f[f.length - 1], "", `data-loc="f${i}"`) : SUITS[i]}</div>`; });
+    $("top").innerHTML = top;
+    let tb = "";
+    tab.forEach((p, i) => {
+      let y = 0, h = "";
+      p.forEach((c, j) => { h += cardHTML(c, `top:${y}px`, `data-loc="t${i}" data-j="${j}"`); y += c.up ? upOff : downOff; });
+      tb += `<div class="pile" data-loc="t${i}" style="height:${y + Math.round(cw * 1.4)}px">${p.length ? h : '<div class="slot" data-loc="t' + i + '">K</div>'}</div>`;
+    });
+    $("tab").innerHTML = tb;
+    $("moves").textContent = moves + " mov.";
+    $("auto").hidden = !(stock.length === 0 && waste.length === 0 && tab.every((p) => p.every((c) => c.up)) && !won());
+  }
+  const won = () => found.every((f) => f.length === 13);
+  const canFound = (c) => { const f = found[SUITS.indexOf(c.s)]; return f.length ? f[f.length - 1].r === c.r - 1 : c.r === 1; };
+  const canTab = (c, p) => { if (!p.length) return c.r === 13; const t = p[p.length - 1]; return t.up && red(t) !== red(c) && t.r === c.r + 1; };
+  function flipTops() { tab.forEach((p) => { if (p.length && !p[p.length - 1].up) p[p.length - 1].up = true; }); }
+  function after() { moves++; flipTops(); B.sfx.click(); render(); if (won()) win(); }
+  function tryMove(src, j, el) {
+    let seq;
+    if (src === "w") seq = waste.slice(-1);
+    else if (src[0] === "f") seq = found[+src[1]].slice(-1);
+    else seq = tab[+src[1]].slice(j);
+    if (!seq.length || !seq[0].up) return;
+    const take = () => { if (src === "w") waste.pop(); else if (src[0] === "f") found[+src[1]].pop(); else tab[+src[1]].splice(j); };
+    // 1) una sola carta a su base
+    if (seq.length === 1 && src[0] !== "f" && canFound(seq[0])) { take(); found[SUITS.indexOf(seq[0].s)].push(seq[0]); return after(); }
+    // 2) a una columna (primero las que no están vacías)
+    const order = tab.map((p, i) => i).filter((i) => "t" + i !== src).sort((a, b) => (tab[a].length ? 0 : 1) - (tab[b].length ? 0 : 1));
+    for (const i of order) if (canTab(seq[0], tab[i])) { take(); tab[i].push(...seq); return after(); }
+    if (el) { el.classList.remove("nope"); void el.offsetWidth; el.classList.add("nope"); }
+    B.sfx.bad();
+  }
+  $("table").addEventListener("click", (e) => {
+    if (!playing) return;
+    const el = e.target.closest("[data-loc]"); if (!el) return;
+    const loc = el.dataset.loc;
+    if (loc === "s") {
+      if (stock.length) { const c = stock.pop(); c.up = true; waste.push(c); }
+      else { stock = waste.reverse().map((c) => Object.assign(c, { up: false })); waste = []; }
+      moves++; B.sfx.swish(); render(); return;
+    }
+    if (el.classList.contains("card")) tryMove(loc, el.dataset.j !== undefined ? +el.dataset.j : 0, el);
+  });
+  $("auto").addEventListener("click", () => {
+    const step = () => {
+      for (const p of tab) if (p.length && canFound(p[p.length - 1])) { const c = p.pop(); found[SUITS.indexOf(c.s)].push(c); moves++; B.sfx.click(); render(); if (won()) return win(); return setTimeout(step, 90); }
+    };
+    step();
+  });
+  $("newG").addEventListener("click", () => { B.sfx.swish(); deal(); });
+  function win() {
+    playing = false; clearInterval(timer);
+    const secs = Math.round((Date.now() - t0) / 1000);
+    B.fx.confetti(); B.sfx.win();
+    setTimeout(() => B.gameOver({
+      id: "solitario", score: secs, lowerIsBetter: true, good: true, back: "index.html",
+      format: (v) => Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"), detail: moves + " movimientos",
+      titles: [{ min: 180, t: "Tahúr del Trono" }, { min: 300, t: "Barajador Experto" }, { min: 480, t: "Jugador Paciente" }, { min: 99999, t: "Se Le Durmieron las Piernas" }],
+      onRetry: deal,
+    }), 900);
+  }
+  window.addEventListener("resize", render);
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); deal(); });
+  deal(); playing = false; clearInterval(timer);
+  Sprites.favicon("cards");
+})();
+</script>
+</body>
+</html>

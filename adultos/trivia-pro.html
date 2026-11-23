@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Trivia Difícil</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
+  <script src="../js/jefe.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--pink-deep); color: #fff; }
+    .area { flex: 1; overflow-y: auto; padding: 6px 16px 90px; max-width: 520px; width: 100%; margin: 0 auto; }
+    .cats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .cats button { min-height: 84px; border: 0; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); font-family: var(--font-title); font-weight: 600; font-size: 1.05rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--ink); }
+    .cats button span { font-size: 1.8rem; }
+    .cats button.mix { grid-column: 1 / -1; background: var(--pink); color: #fff; }
+    .q { background: var(--card); border-radius: 22px; box-shadow: var(--shadow); padding: 16px; }
+    .q small { font-weight: 800; color: var(--pink-deep); }
+    .q h2 { margin: 6px 0 0; font-size: 1.3rem; line-height: 1.25; }
+    .opts { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .opt { min-height: 54px; border: 0; border-radius: 16px; background: var(--card); box-shadow: 0 3px 0 rgba(35,54,74,.1); text-align: left; padding: 8px 14px; font-weight: 800; font-size: 1rem; cursor: pointer; color: var(--ink); }
+    .opt.ok { background: var(--good); color: #fff; } .opt.ko { background: var(--danger); color: #fff; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Adultos"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">A4</span>Trivia difícil</div>
+    <div class="pill" id="prog">—</div><div class="pill" id="score">0</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="paper-bar"><i id="bar"></i><b id="barTxt"></b></div>
+  <div class="area">
+    <div id="pick"><h2 style="margin:6px 0 0">Elige categoría</h2><div class="cats" id="cats"></div></div>
+    <div id="play" hidden><div class="q"><small id="qcat"></small><h2 id="qtext"></h2></div><div class="opts" id="opts"></div></div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona adultos · A4</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="cap"></i></span><div><h2>Trivia difícil</h2><p>Cultura general nivel adulto. Aquí no hay preguntas de patitos.</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Elige una categoría o la mezcla.</span></li>
+          <li><b>2</b><span>10 preguntas con 15 segundos cada una.</span></li>
+          <li><b>3</b><span>100 puntos por acierto + bonus por rapidez.</span></li>
+        </ol>
+        <div class="actions"><button class="btn red" id="go">Elegir categoría</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const BANK = {"Historia": [["¿En qué año cayó el Muro de Berlín?", "1989", ["1991", "1985", "1979"]], ["¿Quién fue el primer emperador romano?", "Augusto", ["Julio César", "Nerón", "Calígula"]], ["¿Qué civilización construyó Machu Picchu?", "Los incas", ["Los mayas", "Los mexicas", "Los olmecas"]], ["¿En qué año inició la Independencia de México?", "1810", ["1821", "1910", "1776"]], ["¿Cómo se llamaba el barco en el que viajó Charles Darwin?", "HMS Beagle", ["Endeavour", "Victoria", "Mayflower"]], ["¿Qué pueblo fundó Tenochtitlan?", "Los mexicas", ["Los toltecas", "Los zapotecas", "Los incas"]], ["¿Quién pintó la bóveda de la Capilla Sixtina?", "Miguel Ángel", ["Leonardo da Vinci", "Rafael", "Botticelli"]], ["¿En qué año terminó la Segunda Guerra Mundial?", "1945", ["1944", "1939", "1950"]], ["¿Qué faraón tiene la famosa tumba descubierta por Howard Carter en 1922?", "Tutankamón", ["Ramsés II", "Keops", "Cleopatra"]], ["¿En qué año llegó Cristóbal Colón a América?", "1492", ["1498", "1519", "1453"]]], "Ciencia": [["¿Cuál es el elemento más abundante del universo?", "Hidrógeno", ["Helio", "Oxígeno", "Carbono"]], ["¿A qué velocidad viaja aproximadamente la luz en el vacío?", "300 000 km/s", ["30 000 km/s", "3 000 km/s", "3 millones de km/s"]], ["¿Cuántos cromosomas tiene normalmente una célula humana?", "46", ["23", "44", "48"]], ["¿Cuál es el símbolo químico del oro?", "Au", ["Or", "Ag", "Go"]], ["¿Qué planeta tarda más en dar una vuelta sobre sí mismo?", "Venus", ["Júpiter", "Mercurio", "Neptuno"]], ["¿Qué órgano produce la insulina?", "El páncreas", ["El hígado", "Los riñones", "El bazo"]], ["¿Cuál es el hueso más pequeño del cuerpo humano?", "El estribo", ["El martillo", "La falange", "El yunque"]], ["¿Qué gas forma la mayor parte de la atmósfera de Marte?", "Dióxido de carbono", ["Nitrógeno", "Oxígeno", "Metano"]], ["¿En qué unidad se mide la resistencia eléctrica?", "Ohmio", ["Voltio", "Amperio", "Vatio"]], ["¿Quién formuló la teoría de la relatividad?", "Albert Einstein", ["Isaac Newton", "Niels Bohr", "Marie Curie"]]], "Geografía": [["¿Cuál es el río más largo de Europa?", "Volga", ["Danubio", "Rin", "Sena"]], ["¿Cuál es la capital de Australia?", "Canberra", ["Sídney", "Melbourne", "Perth"]], ["¿Cuál es el desierto cálido más grande del mundo?", "Sahara", ["Gobi", "Atacama", "Kalahari"]], ["¿Cuál es la montaña más alta de América?", "Aconcagua", ["Denali", "Chimborazo", "Pico de Orizaba"]], ["¿Qué país tiene más hablantes nativos de español?", "México", ["España", "Colombia", "Argentina"]], ["¿Cuál es la capital de Canadá?", "Ottawa", ["Toronto", "Montreal", "Vancouver"]], ["¿En qué país está Marrakech?", "Marruecos", ["Egipto", "Túnez", "Argelia"]], ["¿Cuál es el lago más profundo del mundo?", "Baikal", ["Titicaca", "Tanganica", "Superior"]], ["¿Cuál es el país más pequeño del mundo?", "Ciudad del Vaticano", ["Mónaco", "San Marino", "Liechtenstein"]], ["¿Qué estrecho separa Europa de África?", "Gibraltar", ["Bósforo", "Magallanes", "Ormuz"]]], "Cine y TV": [["¿Quién dirigió «Titanic» (1997)?", "James Cameron", ["Steven Spielberg", "Ridley Scott", "Christopher Nolan"]], ["¿Por qué película ganó Alfonso Cuarón el Óscar a Mejor Director en 2019?", "Roma", ["Gravedad", "Y tu mamá también", "Hijos del hombre"]], ["¿Quién dirigió «El laberinto del fauno»?", "Guillermo del Toro", ["Alejandro G. Iñárritu", "Alfonso Cuarón", "Pedro Almodóvar"]], ["¿En qué año se estrenó la primera película de «Star Wars»?", "1977", ["1980", "1974", "1983"]], ["¿Qué actor interpretó a Jack Sparrow?", "Johnny Depp", ["Orlando Bloom", "Brad Pitt", "Keanu Reeves"]], ["¿Cómo se llama el hotel de «El resplandor»?", "Overlook", ["Bates", "Grand Budapest", "Continental"]], ["¿Qué película ganó el primer Óscar a Mejor Película Animada?", "Shrek", ["Toy Story", "El rey león", "Monsters, Inc."]], ["¿Quién compuso la música de «Jurassic Park» y «E.T.»?", "John Williams", ["Hans Zimmer", "Ennio Morricone", "Danny Elfman"]]], "Música": [["¿Cuántas sinfonías completó Beethoven?", "9", ["7", "10", "12"]], ["¿De qué país es el grupo ABBA?", "Suecia", ["Noruega", "Dinamarca", "Países Bajos"]], ["¿Quién es conocido como «el Rey del Pop»?", "Michael Jackson", ["Elvis Presley", "Prince", "Freddie Mercury"]], ["¿Qué compositor escribió «Las cuatro estaciones»?", "Antonio Vivaldi", ["Mozart", "Bach", "Chopin"]], ["¿De qué ciudad son The Beatles?", "Liverpool", ["Londres", "Mánchester", "Birmingham"]], ["¿A qué cantante le dicen «el Sol de México»?", "Luis Miguel", ["Juan Gabriel", "Vicente Fernández", "José José"]], ["¿A quién le decían «la Reina del Tex-Mex»?", "Selena", ["Gloria Trevi", "Thalía", "Jenni Rivera"]], ["¿Qué instrumento tocaba Jimi Hendrix?", "Guitarra eléctrica", ["Batería", "Bajo", "Piano"]]]};
+  const EMO = { "Historia": "🏛️", "Ciencia": "🧪", "Geografía": "🌎", "Cine y TV": "🎬", "Música": "🎵" };
+  const ROUNDS = 10, SECS = 15;
+  let qs = [], idx = 0, score = 0, ok = 0, tLeft = 0, timer = 0, answered = false, label = "";
+  $("cats").innerHTML = Object.keys(BANK).map((c) => `<button data-c="${c}"><span>${EMO[c]}</span>${c}</button>`).join("") + '<button class="mix" data-c="*"><span>🎲</span>Mezcla de todo</button>';
+  document.querySelectorAll("#cats button").forEach((b) => b.addEventListener("click", () => begin(b.dataset.c)));
+  function begin(cat) {
+    label = cat === "*" ? "Mezcla" : cat;
+    const pool = cat === "*" ? Object.entries(BANK).flatMap(([c, l]) => l.map((q) => [c, ...q])) : BANK[cat].map((q) => [cat, ...q]);
+    qs = B.shuffle(pool).slice(0, ROUNDS); idx = 0; score = 0; ok = 0; $("score").textContent = 0;
+    $("pick").hidden = true; $("play").hidden = false; B.sfx.click(); show();
+  }
+  function show() {
+    answered = false;
+    const [cat, q, right, wrong] = qs[idx];
+    $("prog").textContent = (idx + 1) + "/" + qs.length; $("qcat").textContent = EMO[cat] + " " + cat; $("qtext").textContent = q;
+    $("opts").innerHTML = B.shuffle([right, ...wrong]).map((o) => `<button class="opt"></button>`).join("");
+    const opts = B.shuffle([right, ...wrong]);
+    document.querySelectorAll(".opt").forEach((b, i) => { b.textContent = opts[i]; b.addEventListener("click", () => pickAns(b, opts[i] === right)); });
+    tLeft = SECS; clearInterval(timer);
+    timer = setInterval(() => { tLeft -= 0.1; paint(); if (tLeft <= 0) { clearInterval(timer); pickAns(null, false); } }, 100);
+    paint();
+  }
+  function paint() { $("bar").style.transform = `scaleX(${Math.max(0, tLeft) / SECS})`; $("barTxt").textContent = Math.max(0, Math.ceil(tLeft)) + "s"; }
+  function pickAns(btn, good) {
+    if (answered) return; answered = true; clearInterval(timer);
+    const right = qs[idx][2];
+    document.querySelectorAll(".opt").forEach((b) => { if (b.textContent === right) b.classList.add("ok"); });
+    if (btn && !good) btn.classList.add("ko");
+    if (good) { ok++; const pts = 100 + Math.round(tLeft * 6); score += pts; $("score").textContent = score; B.bump($("score")); B.sfx.good(); }
+    else B.sfx.bad();
+    setTimeout(() => { idx++; if (idx >= qs.length) end(); else show(); }, good ? 900 : 1600);
+  }
+  function end() {
+    B.gameOver({
+      id: "triviapro", score, good: ok >= 6, back: "index.html",
+      format: (v) => v + " pts", detail: ok + "/" + qs.length + " · " + label,
+      titles: [{ min: 1500, t: "Enciclopedia con Patas" }, { min: 1100, t: "Doctor Honoris Causa del Trono" }, { min: 700, t: "Sabelotodo de Sobremesa" }, { min: 300, t: "Cultura de Calendario" }, { min: 0, t: "Leyó Solo el Champú" }],
+      onRetry: () => { $("pick").hidden = false; $("play").hidden = true; $("prog").textContent = "—"; },
+    });
+  }
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); });
+  Sprites.favicon("cap");
+})();
+</script>
+</body>
+</html>

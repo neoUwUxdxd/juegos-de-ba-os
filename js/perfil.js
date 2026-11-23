@@ -37,7 +37,7 @@
   function zoneFor(edad) { return edad <= 7 ? "peques" : edad <= 14 ? "grandes" : "todos"; }
 
   // Progreso local que se sincroniza con la cuenta
-  const GAME_IDS = ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia", "aterriza", "mate", "verdad", "tiro", "grifos", "laberinto", "reflejos", "ahorcado"];
+  const GAME_IDS = ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia", "aterriza", "mate", "verdad", "tiro", "grifos", "laberinto", "reflejos", "ahorcado", "nonograma", "sopa", "solitario", "triviapro"];
   function collectProgress() {
     const best = {}, plays = {};
     GAME_IDS.forEach((id) => { const b = B.best(id); if (b !== null) best[id] = b; const p = B.plays(id); if (p) plays[id] = p; });
@@ -47,7 +47,7 @@
       contadores: { manos: B.store.get("count:manos", 0), sonidos: B.store.get("count:sonidos", 0), retos: B.store.get("retos:count", 0) },
     };
   }
-  const LOWER = { memorama: true, reflejos: true };
+  const LOWER = { memorama: true, reflejos: true, nonograma: true, sopa: true, solitario: true };
   function mergeProgress(p) {
     if (!p) return;
     Object.entries(p.best || {}).forEach(([id, v]) => {
@@ -181,6 +181,9 @@
     { id: "trofeo", e: "🏆", t: "Campeón del baño", d: "Llena la tabla de estrellas", test: (s) => s.trofeos >= 1 },
     { id: "reto", e: "📅", t: "Retador", d: "Completa un reto del día", test: (s) => s.retos >= 1 },
     { id: "retos5", e: "🔥", t: "Imparable", d: "Completa 5 retos del día", test: (s) => s.retos >= 5 },
+    { id: "solitario", e: "🃏", t: "Tahúr del trono", d: "Gana una partida de Solitario", test: () => bestOf("solitario") !== null },
+    { id: "nonograma", e: "🧩", t: "Lógica de azulejo", d: "Resuelve un Nonograma", test: () => bestOf("nonograma") !== null },
+    { id: "sueldo", e: "💸", t: "Asalariado del trono", d: "Cobra una visita en el Sueldo del trono", test: () => B.store.get("count:sueldo", 0) >= 1 },
     { id: "dj", e: "🎺", t: "DJ del baño", d: "Toca 30 sonidos en la botonera", test: (s) => s.sonidos >= 30 },
   ];
   function stats() {
@@ -226,6 +229,8 @@
     { game: "tiro", name: "Tiro al Cesto", href: "grandes/tiro.html", target: 500, unit: "pts", txt: "Haz 500 puntos en Tiro al Cesto" },
     { game: "grifos", name: "Grifos en Orden", href: "grandes/grifos.html", target: 6, unit: "rondas", txt: "Llega a 6 rondas en Grifos en Orden" },
     { game: "ahorcado", name: "Adivina la Palabra", href: "grandes/ahorcado.html", target: 400, unit: "pts", txt: "Haz 400 puntos en Adivina la Palabra" },
+    { game: "sopa", name: "Sopa de letras", href: "adultos/sopa.html", target: 180, lower: true, unit: "s", txt: "Termina una Sopa de letras en menos de 3 minutos" },
+    { game: "triviapro", name: "Trivia difícil", href: "adultos/trivia-pro.html", target: 700, unit: "pts", txt: "Haz 700 puntos en la Trivia difícil" },
     { game: "aterriza", name: "Aterriza el Trono", href: "grandes/aterriza.html", target: 300, unit: "pts", txt: "Haz 300 puntos en Aterriza el Trono" },
   ];
   function dayKey(d) { d = d || new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }

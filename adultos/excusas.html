@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Generador de Excusas</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
+  <script src="../js/jefe.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--pink-deep); color: #fff; }
+    .area { flex: 1; overflow-y: auto; padding: 10px 16px 90px; max-width: 520px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    .card2 { background: var(--card); border-radius: 26px; box-shadow: var(--shadow); padding: 22px 20px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; }
+    .card2 small { font-weight: 800; color: var(--pink-deep); }
+    .card2 p { font-family: var(--font-title); font-size: clamp(1.4rem, 6.4vw, 1.8rem); line-height: 1.25; margin: 8px 0 0; }
+    .card2.new { animation: pop .35s cubic-bezier(.3,1.6,.5,1); }
+    @keyframes pop { from { transform: scale(.94) rotate(-1deg); opacity: .4; } }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row2 .btn { width: 100%; }
+    .count { text-align: center; color: var(--ink-soft); font-weight: 800; font-size: .85rem; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Adultos"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">🤥</span>Excusas</div>
+    
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="area">
+    <div class="mascot" id="rollo"></div>
+    <div class="card2" id="card"><small>Excusa oficial n.º <span id="n">1</span></small><p id="txt"></p></div>
+    <button class="btn big" id="next" style="min-height:66px;font-size:1.25rem">🎲 Otra excusa</button>
+    <div class="row2"><button class="btn ghost" id="copy">📋 Copiar</button><button class="btn blue" id="share">📤 Compartir</button></div>
+    <div class="count">Combinaciones posibles: <span id="combos"></span></div>
+  </div>
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const A = ["Perdón, tardé porque", "No es lo que parece:", "Te juro que", "Tardé tanto porque", "Mi versión oficial es que", "Antes de que preguntes:", "Para que conste en actas,"];
+  const M = ["me quedé leyendo los ingredientes del champú", "estaba en una junta muy importante conmigo mismo", "se acabó el papel y tuve que negociar con el destino",
+    "descubrí que el azulejo tiene 47 patrones distintos", "el patito de hule me contó su vida", "estaba resolviendo un nonograma de vida o muerte",
+    "se me durmieron las dos piernas al mismo tiempo", "la cadena no quería cooperar", "estaba meditando sobre el sentido de la vida",
+    "batí mi récord en Lluvia de Papel", "tuve una revelación sobre mi futuro profesional", "me hice amigo de una araña muy educada",
+    "estaba haciendo inventario de toallas", "el espejo y yo tuvimos una conversación seria", "la WiFi del baño es la mejor de la casa",
+    "estaba calculando cuánto me pagan por estar aquí", "el rollo se desenrolló y fue una persecución épica", "practiqué mi discurso para los Óscar"];
+  const Z = ["y no pienso dar más detalles.", "pero ya regresé, más sabio.", "y volvería a hacerlo.", "y eso es todo lo que diré sin mi abogado.",
+    "así que técnicamente fue trabajo.", "pero ya me lavé las manos 🧼.", "y fue lo mejor de mi día.", "y si me disculpas, necesito una siesta."];
+  let n = B.store.get("excusas:n", 0), last = "";
+  $("combos").textContent = (A.length * M.length * Z.length).toLocaleString("es-MX");
+  $("rollo").innerHTML = B.mascot("wink") + '<div class="say"><small>Don Rollo · asesor legal</small>¿Te preguntaron por qué tardaste? Aquí tienes coartada.</div>';
+  function next() {
+    let t;
+    do { t = B.pick(A) + " " + B.pick(M) + " " + B.pick(Z); } while (t === last);
+    last = t; n++; B.store.set("excusas:n", n);
+    $("txt").textContent = t; $("n").textContent = n;
+    const c = $("card"); c.classList.remove("new"); void c.offsetWidth; c.classList.add("new");
+  }
+  $("next").addEventListener("click", () => { B.sfx.plop(); next(); });
+  $("copy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(last); FX.toast("📋 Copiada"); } catch (e) { FX.toast("No se pudo copiar"); } });
+  $("share").addEventListener("click", async () => {
+    if (navigator.share) { try { await navigator.share({ text: last + " (excusa de Juegos de Baño)" }); } catch (e) { /* cancelado */ } }
+    else { try { await navigator.clipboard.writeText(last); FX.toast("📋 Copiada para compartir"); } catch (e) { /* nada */ } }
+  });
+  next();
+  Sprites.favicon("liar");
+})();
+</script>
+</body>
+</html>
