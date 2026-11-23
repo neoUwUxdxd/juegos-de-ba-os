@@ -6,7 +6,6 @@ body.kids {
   --grout: #f3e8c6;
 }
 :root[data-theme="dark"] body.kids { --tile-a: #1d2741; --tile-b: #1a2339; --bg: #151d31; --grout: rgba(103, 184, 255, 0.16); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body.kids { --tile-a: #1d2741; --tile-b: #1a2339; --bg: #151d31; --grout: rgba(103, 184, 255, 0.16); } }
 
 .kids .page { min-height: 100dvh; display: flex; flex-direction: column; }
 .kids .game-page { height: 100dvh; }

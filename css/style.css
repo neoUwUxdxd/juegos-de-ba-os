@@ -33,23 +33,6 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --tile-a: #17233a;
-    --tile-b: #142036;
-    --grout: rgba(103, 184, 255, 0.16);
-    --bg: #101a2c;
-    --ink: #eaf4ff;
-    --ink-soft: #a5b6cc;
-    --card: rgba(28, 42, 68, 0.88);
-    --card-edge: rgba(120, 180, 255, 0.25);
-    --shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(103, 184, 255, 0.08);
-    --hud: rgba(22, 34, 56, 0.85);
-    --overlay: rgba(12, 20, 36, 0.78);
-    --tile-shine: rgba(255, 255, 255, 0.04);
-    color-scheme: dark;
-  }
-}
 :root[data-theme="dark"] {
   --tile-a: #17233a;
   --tile-b: #142036;

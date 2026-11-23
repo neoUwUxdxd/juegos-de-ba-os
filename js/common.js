@@ -19,7 +19,7 @@
   };
 
   // Tema guardado (se aplica lo antes posible)
-  const savedTheme = store.get("theme", null);
+  const savedTheme = store.get("theme2", null);
   if (savedTheme === "light" || savedTheme === "dark") {
     document.documentElement.setAttribute("data-theme", savedTheme);
   }
