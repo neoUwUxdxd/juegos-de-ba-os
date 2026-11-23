@@ -4,20 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Lluvia de Papel</title>
-  <meta name="theme-color" content="#1D3B4F">
+  <meta name="theme-color" content="#d8f0ea">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧻</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/common.js"></script>
   <script src="../js/fx.js"></script>
-  <script src="../js/sprites.js"></script>
 </head>
 <body class="game-page">
   <header class="hud">
-    <a class="icon-btn" href="../index.html" aria-label="Volver al menú"><i data-sprite="door"></i></a>
-    <div class="hud-title"><span class="hud-num">01</span>Lluvia</div>
-    <div class="pill" id="lives"></div>
+    <a class="icon-btn" href="../index.html" aria-label="Volver al menú">🚪</a>
+    <div class="hud-title">🧻 Lluvia de Papel</div>
+    <div class="pill" id="lives">❤️❤️❤️</div>
     <div class="pill" id="score">0</div>
     <button class="icon-btn" id="mute"></button>
   </header>
@@ -25,28 +25,25 @@
 
   <div class="overlay show" id="start">
     <div class="panel">
-      <div class="panel-head"><span>Instrucciones</span><span>Cubículo 01</span></div>
-      <div class="panel-body">
-        <div class="hero"><span class="big-pic"><i data-sprite="roll"></i></span><div><h2>Lluvia de papel</h2><p>Se rompió el dispensador y llueve papel.</p></div></div>
-        <ol class="howto">
-          <li><b>1</b><span>Arrastra el dedo para mover el inodoro.</span></li>
-          <li><b>2</b><span>Atrapa rollos <span class="ico"><i data-sprite="roll"></i></span> para sumar. Los dorados <span class="ico"><i data-sprite="rollGold"></i></span> valen ×5.</span></li>
-          <li><b>3</b><span>Esquiva <span class="ico"><i data-sprite="poop"></i></span> y <span class="ico"><i data-sprite="plunger"></i></span>: te quitan una vida.</span></li>
-          <li><b>4</b><span>Atrapa seguidos para subir el combo.</span></li>
-        </ol>
-        <div class="actions"><button class="btn" id="go">A jugar</button></div>
-      </div>
+      <span class="big-emoji">🧻</span>
+      <h2>Lluvia de Papel</h2>
+      <p>¡Se rompió el dispensador y llueve papel!</p>
+      <div class="howto"><ul>
+        <li>Arrastra el dedo para mover el 🚽.</li>
+        <li>Atrapa 🧻 para sumar puntos. Los dorados valen ×5.</li>
+        <li>Esquiva 💩 y 🪠: te quitan una vida.</li>
+        <li>Atrapa seguidos para subir el combo.</li>
+      </ul></div>
+      <div class="actions"><button class="btn" id="go">¡A jugar!</button></div>
     </div>
   </div>
 
   <div class="overlay" id="pause">
     <div class="panel">
-      <div class="panel-head"><span>Aviso</span><span>Pausa</span></div>
-      <div class="panel-body">
-        <h2>Juego en pausa</h2>
-        <p>Tranquilo, aquí nadie tiene prisa.</p>
-        <div class="actions"><button class="btn" id="resume">Seguir</button></div>
-      </div>
+      <span class="big-emoji">⏸️</span>
+      <h2>Pausa</h2>
+      <p>Tranquilo, el papel te espera.</p>
+      <div class="actions"><button class="btn" id="resume">Seguir</button></div>
     </div>
   </div>
 
@@ -71,7 +68,7 @@
 
   function hud() {
     scoreEl.textContent = score;
-    livesEl.innerHTML = [0, 1, 2].map((i) => '<span class="ico">' + Sprites.svg(i < lives ? "heart" : "heartEmpty") + "</span>").join("");
+    livesEl.textContent = "❤️".repeat(lives) + "🖤".repeat(3 - lives);
   }
 
   function start() {
@@ -113,7 +110,7 @@
       FX.bubbles(sx, sy, it.kind === "gold" ? 12 : 6);
       if (it.kind === "gold") { B.sfx.gold(); B.vibrate(20); }
       else B.sfx.plop();
-      if (combo > 0 && combo % 6 === 0) FX.toast("Combo ×" + (1 + combo / 6));
+      if (combo > 0 && combo % 6 === 0) FX.toast("🔥 Combo ×" + (1 + combo / 6));
       B.bump(scoreEl);
     } else {
       lives--; combo = 0; player.hurt = 1;
@@ -129,7 +126,7 @@
     state = "over";
     hud();
     B.gameOver({
-      id: "lluvia", num: "01", name: "LLUVIA DE PAPEL", score, good: score >= 300,
+      id: "lluvia", score, good: score >= 300,
       format: (v) => v + " pts",
       detail: "Tiempo: " + Math.round(t) + " s",
       titles: [
@@ -193,48 +190,44 @@
   function draw() {
     ctx.clearRect(0, 0, S.w, S.h);
 
-    // Piso de azulejo
+    // Piso
     const floorY = player.y + 30;
-    ctx.fillStyle = "#C7D5DA"; ctx.fillRect(0, floorY, S.w, S.h - floorY);
-    for (let x = 0; x < S.w; x += 44) for (let y = floorY + 3; y < S.h; y += 44) {
-      ctx.fillStyle = ((x / 44 + Math.round((y - floorY) / 44)) % 2) ? "#FFFFFF" : "#DDEFF5";
-      ctx.fillRect(x + 3, y, 41, 41);
-    }
-    ctx.fillStyle = "#1F4E6B"; ctx.fillRect(0, floorY, S.w, 4);
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.fillRect(0, floorY, S.w, S.h - floorY);
+
     for (const it of items) {
       if (it.kind === "gold") {
-        ctx.save();
-        ctx.translate(it.x, it.y); ctx.rotate(t * 2);
-        ctx.setLineDash([6, 6]); ctx.lineWidth = 3; ctx.strokeStyle = "#1D3B4F";
-        ctx.fillStyle = "#F0BF45";
-        ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.restore();
+        const g = ctx.createRadialGradient(it.x, it.y, 4, it.x, it.y, 40);
+        g.addColorStop(0, "rgba(255,212,94,0.9)");
+        g.addColorStop(1, "rgba(255,212,94,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(it.x, it.y, 40, 0, Math.PI * 2); ctx.fill();
       }
-      const e = it.kind === "poop" ? "poop" : it.kind === "plunger" ? "plunger" : it.kind === "gold" ? "rollGold" : "roll";
-      B.drawSprite(ctx, e, it.x, it.y, it.size, it.rot);
+      const e = it.kind === "poop" ? "💩" : it.kind === "plunger" ? "🪠" : "🧻";
+      B.drawEmoji(ctx, e, it.x, it.y, it.size, it.rot);
     }
     for (const s of sparkles) {
       ctx.globalAlpha = s.life;
-      ctx.fillStyle = "#F0BF45"; ctx.strokeStyle = "#1D3B4F"; ctx.lineWidth = 1.5;
-      ctx.fillRect(s.x - 4, s.y - 4, 8, 8); ctx.strokeRect(s.x - 4, s.y - 4, 8, 8);
+      B.drawEmoji(ctx, "✨", s.x, s.y, 14);
     }
     ctx.globalAlpha = 1;
 
     // Sombra + jugador
-
+    ctx.fillStyle = "rgba(35,54,74,0.15)";
+    ctx.beginPath(); ctx.ellipse(player.x, floorY, 38, 8, 0, 0, Math.PI * 2); ctx.fill();
     const sq = Math.sin(player.squash * Math.PI) * 0.18;
     ctx.save();
     ctx.translate(player.x, player.y + 26);
     ctx.scale(1 + sq, 1 - sq);
     if (player.hurt > 0) ctx.rotate(Math.sin(player.hurt * 30) * 0.15);
-    B.drawSprite(ctx, "toilet", 0, -26, 72);
+    B.drawEmoji(ctx, "🚽", 0, -26, 66);
     ctx.restore();
 
     if (combo >= 3) {
-      ctx.font = '700 13px "IBM Plex Mono", monospace';
+      ctx.font = '700 15px Fredoka, sans-serif';
       ctx.textAlign = "center";
-      ctx.fillStyle = "#1F4E6B";
-      ctx.fillText("COMBO " + combo, player.x, floorY + 30);
+      ctx.fillStyle = "#e95f8c";
+      ctx.fillText("combo " + combo, player.x, floorY + 22);
     }
   }
 
@@ -257,9 +250,7 @@
     if (document.hidden && state === "play") { state = "paused"; B.overlay("pause", true); }
   });
 
-  Sprites.favicon("roll");
-  Sprites.preload(["roll", "rollGold", "poop", "plunger"], 42).then(() => Sprites.preload(["rollGold"], 46)).then(() => Sprites.preload(["toilet"], 72)).then(() => { if (state !== "play") draw(); });
-  hud(); draw();
+  draw();
 })();
 </script>
 </body>

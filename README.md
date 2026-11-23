@@ -43,7 +43,7 @@ Para salir de la zona, un adulto mantiene presionado el botón de arriba.
 
 ### Diseño
 
-Estilo de **señalética de baño público**: placas con contorno negro, sombras duras, puertas de cubículo con cerrojo LIBRE/OCUPADO, pictogramas propios en SVG (sin emojis) y un ticket de visita impreso al terminar cada partida. Tipografías: Archivo e IBM Plex Mono. Tiene modo noche, récords guardados en el navegador, sonidos sintetizados con botón de silencio y vibración.
+Azulejos pastel de baño con tarjetas suaves, emojis, la mascota **Don Rollo** y un «certificado de visita» con un título gracioso al terminar cada partida. Tipografías Fredoka y Nunito. Tiene modo noche, récords guardados en el navegador, sonidos sintetizados con botón de silencio y vibración.
 
 ## Jugar en tu computadora
 
