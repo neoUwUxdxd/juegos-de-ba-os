@@ -5,33 +5,41 @@
   "use strict";
   let uid = 0;
 
-  // Don Rollo: rollo de papel con carita, estilo pictograma. mood: happy | sad | wow | wink
+  // Don Rollo: rollo de papel con carita. mood: happy | sad | wow | wink
   function mascot(mood) {
-    const S = 'stroke="#1D3B4F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"';
+    const id = "dr" + (++uid);
     const mouths = {
-      happy: `<path d="M34 55h16c0 6-4 9-8 9s-8-3-8-9z" fill="#E7685A" ${S}/>`,
-      sad: `<path d="M35 61q7-7 14 0" fill="none" ${S}/>`,
-      wow: `<rect x="38" y="53" width="8" height="10" rx="4" fill="#E7685A" ${S}/>`,
-      wink: `<path d="M35 56q7 6 14 0" fill="none" ${S}/>`,
+      happy: '<path d="M34 55 Q42 64 50 55" fill="#ff7a9c" stroke="#23364a" stroke-width="2.4" stroke-linecap="round"/>',
+      sad: '<path d="M35 60 Q42 53 49 60" fill="none" stroke="#23364a" stroke-width="2.6" stroke-linecap="round"/>',
+      wow: '<ellipse cx="42" cy="58" rx="4.5" ry="5.5" fill="#ff7a9c" stroke="#23364a" stroke-width="2.2"/>',
+      wink: '<path d="M35 56 Q42 62 49 56" fill="none" stroke="#23364a" stroke-width="2.6" stroke-linecap="round"/>',
     };
     const leftEye = mood === "wink"
-      ? `<path d="M28 45h8" ${S}/>`
-      : '<rect class="eye" x="29" y="40" width="6" height="9" rx="1" fill="#1D3B4F"/>';
-    const brows = mood === "sad" ? `<path d="M27 35l9 3M57 35l-9 3" ${S}/>` : "";
+      ? '<path d="M28 45 Q32 41 36 45" fill="none" stroke="#23364a" stroke-width="2.6" stroke-linecap="round"/>'
+      : '<g class="eye"><ellipse cx="32" cy="45" rx="4.4" ry="5.6" fill="#23364a"/><circle cx="33.6" cy="43" r="1.6" fill="#fff"/></g>';
+    const brows = mood === "sad"
+      ? '<path d="M27 36 L35 38 M57 36 L49 38" stroke="#23364a" stroke-width="2.2" stroke-linecap="round"/>'
+      : "";
     const arms = mood === "happy" || mood === "wow"
-      ? `<path d="M10 52 2 38M74 52l8-14" ${S} stroke-width="4"/>`
-      : `<path d="M10 54 4 68M74 54l6 14" ${S} stroke-width="4"/>`;
-    return `<svg class="rollo" viewBox="0 0 84 100" role="img" aria-label="Don Rollo, la mascota">
+      ? '<path d="M10 50 Q2 44 4 34" fill="none" stroke="#23364a" stroke-width="3" stroke-linecap="round"/><path d="M74 50 Q82 44 80 34" fill="none" stroke="#23364a" stroke-width="3" stroke-linecap="round"/>'
+      : '<path d="M10 52 Q4 58 6 66" fill="none" stroke="#23364a" stroke-width="3" stroke-linecap="round"/><path d="M74 52 Q80 58 78 66" fill="none" stroke="#23364a" stroke-width="3" stroke-linecap="round"/>';
+    return `<svg viewBox="0 0 84 100" role="img" aria-label="Don Rollo, la mascota">
+      <defs>
+        <linearGradient id="${id}" x1="0" x2="1">
+          <stop offset="0" stop-color="#dfe7ee"/><stop offset=".32" stop-color="#ffffff"/><stop offset="1" stop-color="#cfd9e2"/>
+        </linearGradient>
+      </defs>
       ${arms}
-      <path d="M56 84h26v12l-4-3-4 3-4-3-4 3-4-3-6 3z" fill="#fff" ${S}/>
-      <path d="M10 16v64a32 9 0 0 0 64 0V16" fill="#fff" ${S}/>
-      <path d="M20 28v48" stroke="#1D3B4F" stroke-width="2" stroke-dasharray="3 7" opacity=".25"/>
-      <ellipse cx="42" cy="16" rx="32" ry="9" fill="#fff" ${S}/>
-      <ellipse cx="42" cy="16" rx="11" ry="3.6" fill="#C9A77C" ${S} stroke-width="2.5"/>
-      <rect x="6" y="70" width="72" height="8" fill="#F0BF45" stroke="#1D3B4F" stroke-width="3"/>
+      <path d="M58 82 C 62 92 70 96 82 95 L80 99 L77 96 L74 99 L71 96 L68 99 C 60 98 54 92 52 84 Z" fill="#fff" stroke="#23364a" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M10 16 V80 A32 10 0 0 0 74 80 V16" fill="url(#${id})" stroke="#23364a" stroke-width="2.6"/>
+      <path d="M14 30 V74" stroke="rgba(35,54,74,.08)" stroke-width="3" stroke-dasharray="2 6"/>
+      <ellipse cx="42" cy="16" rx="32" ry="10" fill="#fff" stroke="#23364a" stroke-width="2.6"/>
+      <ellipse cx="42" cy="16" rx="11" ry="4.2" fill="#c9a77c" stroke="#23364a" stroke-width="2"/>
       ${brows}
       ${leftEye}
-      <rect class="eye" x="49" y="40" width="6" height="9" rx="1" fill="#1D3B4F"/>
+      <g class="eye"><ellipse cx="52" cy="45" rx="4.4" ry="5.6" fill="#23364a"/><circle cx="53.6" cy="43" r="1.6" fill="#fff"/></g>
+      <circle cx="25" cy="54" r="5" fill="#ff8fb1" opacity=".55"/>
+      <circle cx="59" cy="54" r="5" fill="#ff8fb1" opacity=".55"/>
       ${mouths[mood] || mouths.happy}
     </svg>`;
   }
@@ -57,23 +65,22 @@
     setTimeout(() => el.remove(), 950);
   }
 
-  // Chispas cuadradas en colores de señalética (se mantiene el nombre «bubbles»)
   function bubbles(x, y, n) {
     if (reduced()) return;
     n = n || 8;
     const L = getLayer();
-    const cols = ["#F0BF45", "#E7685A", "#2F9FC4", "#3BAA8C", "#FFFFFF"];
     for (let i = 0; i < n; i++) {
       const el = document.createElement("div");
-      el.className = "spark";
+      el.className = "bubble-pop";
+      const s = 8 + Math.random() * 16;
       const a = Math.random() * Math.PI * 2;
-      const d = 30 + Math.random() * 46;
-      el.style.left = x - 5 + "px"; el.style.top = y - 5 + "px";
-      el.style.setProperty("--c", cols[i % cols.length]);
+      const d = 30 + Math.random() * 50;
+      el.style.width = el.style.height = s + "px";
+      el.style.left = x - s / 2 + "px"; el.style.top = y - s / 2 + "px";
       el.style.setProperty("--dx", Math.cos(a) * d + "px");
-      el.style.setProperty("--dy", Math.sin(a) * d + "px");
+      el.style.setProperty("--dy", Math.sin(a) * d - 20 + "px");
       L.appendChild(el);
-      setTimeout(() => el.remove(), 580);
+      setTimeout(() => el.remove(), 720);
     }
   }
 
@@ -95,7 +102,7 @@
     const W = window.innerWidth, H = window.innerHeight;
     c.width = W * dpr; c.height = H * dpr;
     const x = c.getContext("2d"); x.scale(dpr, dpr);
-    const colors = ["#FFFFFF", "#F0BF45", "#E7685A", "#2F9FC4", "#3BAA8C"];
+    const colors = ["#ffffff", "#ff8fb1", "#4fd1b5", "#ffd45e", "#67b8ff", "#b79bff"];
     const parts = Array.from({ length: 110 }, () => ({
       x: W / 2 + (Math.random() - 0.5) * 80, y: H * 0.35,
       vx: (Math.random() - 0.5) * 12, vy: -6 - Math.random() * 10,
@@ -116,8 +123,9 @@
         x.globalAlpha = Math.max(0, 1 - el / duration);
         x.fillStyle = p.c;
         x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        x.strokeStyle = "#1D3B4F"; x.lineWidth = 1.5;
-        x.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        x.strokeStyle = "rgba(35,54,74,.18)";
+        x.setLineDash([2, 2]);
+        x.beginPath(); x.moveTo(-p.w / 2, 0); x.lineTo(p.w / 2, 0); x.stroke();
         x.restore();
       }
       if (el < duration) requestAnimationFrame(frame); else c.remove();

@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Lávate las manos</title>
-  <meta name="theme-color" content="#1D3B4F">
+  <meta name="theme-color" content="#d8f0ea">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/kids.css">
   <script src="../js/common.js"></script>
@@ -16,7 +16,7 @@
   <script src="../js/kids.js"></script>
   <style>
     .sink { position: relative; flex: 1; margin: 12px 16px; overflow: hidden; touch-action: none;
-      background: #BFE0FF; border: 2px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); }
+      background: #BFE0FF; border: 2px solid var(--card-edge); border-radius: 22px; box-shadow: var(--shadow); }
     .hands { position: absolute; inset: 12% 8% 18%; display: flex; justify-content: center; align-items: center; gap: 2%; pointer-events: none; }
     .hands .h { width: 46%; max-width: 200px; aspect-ratio: 1; }
     .hands .h.l { transform: scaleX(-1) rotate(8deg); } .hands .h.r { transform: rotate(8deg); }
@@ -24,14 +24,14 @@
     .rub .hands .h.r { animation: rubr .3s ease-in-out infinite alternate; }
     @keyframes rubl { to { transform: scaleX(-1) rotate(8deg) translate(-10px, 6px); } }
     @keyframes rubr { to { transform: rotate(8deg) translate(-10px, -6px); } }
-    .foam { position: absolute; border-radius: 50%; background: #fff; border: 2px solid var(--line); pointer-events: none; transition: opacity 1.5s, transform 1.5s; }
+    .foam { position: absolute; border-radius: 50%; background: #fff; border: 2px solid var(--card-edge); pointer-events: none; transition: opacity 1.5s, transform 1.5s; }
     .rinse .foam { opacity: 0; transform: translateY(160px) scale(.4); }
     .drop { position: absolute; top: -60px; width: 40px; height: 40px; pointer-events: none; animation: fall 1s linear forwards; }
     @keyframes fall { to { transform: translateY(120vh); } }
     .big-n { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none;
-      font-family: var(--font-mono); font-weight: 700; font-size: 2.4rem; background: var(--yellow); border: 2px solid var(--line); border-radius: 14px; padding: 0 16px; }
+      font-family: var(--font-mono); font-weight: 700; font-size: 2.4rem; background: var(--yellow); border: 2px solid var(--card-edge); border-radius: 14px; padding: 0 16px; }
     .msg { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
-      background: var(--black); color: var(--yellow); border-radius: 12px; padding: 6px 14px; font-weight: 800; font-size: 1.6rem; }
+      background: var(--black); color: var(--yellow); border-radius: 12px; padding: 6px 14px; font-weight: 700; font-size: 1.6rem; }
     .paper-bar { margin: 0 16px 6px; height: 26px; }
     .end { display: none; gap: 12px; padding: 0 16px 16px; }
     .end.show { display: flex; }
