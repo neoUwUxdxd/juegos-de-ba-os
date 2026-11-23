@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Tiro al Cesto</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G6</span>Tiro al cesto</div>
+    <div class="pill" id="shots">1/10</div><div class="pill" id="score">0</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G6</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="trash"></i></span><div><h2>Tiro al cesto</h2><p>Haz bolita el papel y encéstalo en el bote. ¡Sin fallar!</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Desliza el dedo hacia arriba desde la bolita para lanzarla.</span></li>
+          <li><b>2</b><span>Más largo el deslizamiento = lanzamiento más fuerte.</span></li>
+          <li><b>3</b><span>Ojo con el viento (la flecha arriba) y con el bote que se mueve.</span></li>
+          <li><b>4</b><span>10 tiros. Las rachas dan puntos extra.</span></li>
+        </ol>
+        <div class="actions"><button class="btn blue" id="go">A lanzar</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="pause">
+    <div class="panel">
+      <div class="panel-head"><span>Aviso</span><span>Pausa</span></div>
+      <div class="panel-body">
+        <h2>Juego en pausa</h2>
+        <p>Tranquilo, aquí nadie tiene prisa.</p>
+        <div class="actions"><button class="btn" id="resume">Seguir</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const stage = $("stage"), cv = $("cv");
+  const S = B.fitCanvas(cv, () => { if (state !== "fly") draw(); });
+  const ctx = S.ctx;
+  const G = 900, R = 15, TOTAL = 10;
+  let state = "idle", shot = 0, score = 0, streak = 0, made = 0, wind = 0, t = 0, last = 0, wait = 0;
+  const ball = { x: 0, y: 0, vx: 0, vy: 0, rot: 0 };
+  const bin = { x: 0, y: 0, w: 70, h: 74, base: 0, amp: 0 };
+  let drag = null;
+  function home() { ball.x = S.w / 2; ball.y = S.h - 70; ball.vx = ball.vy = 0; }
+  function newShot() {
+    shot++;
+    $("shots").textContent = Math.min(shot, TOTAL) + "/" + TOTAL;
+    bin.w = Math.max(46, 74 - shot * 2.5);
+    bin.base = B.rand(bin.w / 2 + 20, S.w - bin.w / 2 - 20);
+    bin.y = B.rand(S.h * 0.26, S.h * 0.5);
+    bin.amp = shot >= 4 ? B.rand(20, Math.min(90, S.w / 2 - bin.w)) : 0;
+    wind = shot >= 3 ? Math.round(B.rand(-1, 1) * Math.min(160, 30 + shot * 14)) : 0;
+    home(); state = "aim"; draw();
+  }
+  function start() { shot = 0; score = 0; streak = 0; made = 0; $("score").textContent = 0; t = 0; newShot(); last = performance.now(); requestAnimationFrame(loop); }
+  function binX() { return bin.base + Math.sin(t * 1.3) * bin.amp; }
+  function loop(now) {
+    if (state === "over" || state === "idle" || state === "paused") return;
+    const dt = Math.min(0.033, (now - last) / 1000); last = now; t += dt;
+    if (state === "fly") {
+      const py = ball.y;
+      ball.vy += G * dt; ball.vx += wind * dt;
+      ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.rot += ball.vx * dt * 0.05;
+      const bx = binX(), l = bx - bin.w / 2, r = bx + bin.w / 2;
+      if (ball.vy > 0 && py < bin.y && ball.y >= bin.y) {
+        if (ball.x > l + R * 0.4 && ball.x < r - R * 0.4) return scoreIt();
+        if (Math.abs(ball.x - l) < R || Math.abs(ball.x - r) < R) { ball.vy *= -0.35; ball.vx = (ball.x < bx ? -1 : 1) * Math.abs(ball.vx) * 0.5 + (ball.x < bx ? -60 : 60); B.sfx.click(); }
+      }
+      if ((ball.vy > 0 && ball.y > S.h - 30) || ball.x < -60 || ball.x > S.w + 60) miss();
+    } else if (state === "wait") {
+      wait -= dt;
+      if (wait <= 0) { if (shot >= TOTAL) return end(); newShot(); }
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+  function scoreIt() {
+    streak++; made++;
+    const pts = 100 + (streak - 1) * 25;
+    score += pts; $("score").textContent = score; B.bump($("score"));
+    const r = cv.getBoundingClientRect();
+    FX.floatText(r.left + binX(), r.top + bin.y - 20, "+" + pts, "gold");
+    FX.bubbles(r.left + binX(), r.top + bin.y, 10);
+    if (streak >= 3) FX.toast("🔥 ¡Racha de " + streak + "!");
+    B.sfx.good(); B.vibrate(20);
+    state = "wait"; wait = 0.9; ball.y = -999;
+  }
+  function miss() {
+    streak = 0; B.sfx.bad(); FX.shake(stage);
+    state = "wait"; wait = 0.4;
+  }
+  function draw() {
+    ctx.clearRect(0, 0, S.w, S.h);
+    // viento
+    ctx.font = '700 15px Fredoka, sans-serif'; ctx.textAlign = "center"; ctx.fillStyle = "#5b6f84";
+    ctx.fillText(wind ? "Viento " + (wind > 0 ? "→ " : "← ") + Math.abs(Math.round(wind / 10)) : "Sin viento", S.w / 2, 24);
+    // bote
+    const bx = binX(), l = bx - bin.w / 2;
+    ctx.fillStyle = "#67b8ff";
+    ctx.beginPath(); ctx.moveTo(l, bin.y); ctx.lineTo(l + bin.w, bin.y); ctx.lineTo(l + bin.w - 8, bin.y + bin.h); ctx.lineTo(l + 8, bin.y + bin.h); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(l + 10, bin.y + 8, 6, bin.h - 16);
+    ctx.fillStyle = "#2f8ae0"; ctx.beginPath(); ctx.ellipse(bx, bin.y, bin.w / 2 + 4, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#23364a"; ctx.beginPath(); ctx.ellipse(bx, bin.y, bin.w / 2 - 2, 4, 0, 0, Math.PI * 2); ctx.fill();
+    // guía de puntería
+    if (drag && state === "aim") {
+      let x = ball.x, y = ball.y, vx = drag.vx, vy = drag.vy;
+      ctx.fillStyle = "rgba(35,54,74,.35)";
+      for (let i = 0; i < 9; i++) { for (let k = 0; k < 4; k++) { vy += G * 0.01; vx += wind * 0.01; x += vx * 0.01; y += vy * 0.01; } ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
+    }
+    // bolita de papel
+    if (ball.y > -100) {
+      ctx.save(); ctx.translate(ball.x, ball.y); ctx.rotate(ball.rot);
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#c9d3dc"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-8, -4); ctx.lineTo(-1, 2); ctx.lineTo(6, -6); ctx.moveTo(-5, 7); ctx.lineTo(4, 4); ctx.stroke();
+      ctx.restore();
+    }
+    if (state === "aim" && !drag) { ctx.fillStyle = "#5b6f84"; ctx.font = '700 14px Nunito, sans-serif'; ctx.fillText("↑ Desliza para lanzar", S.w / 2, S.h - 22); }
+  }
+  function pos(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  stage.addEventListener("pointerdown", (e) => { if (state !== "aim") return; const [x, y] = pos(e); drag = { x0: x, y0: y, vx: 0, vy: 0 }; stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const [x, y] = pos(e);
+    let vx = (x - drag.x0) * 5.2, vy = (y - drag.y0) * 5.2;
+    const sp = Math.hypot(vx, vy); if (sp > 1500) { vx *= 1500 / sp; vy *= 1500 / sp; }
+    drag.vx = vx; drag.vy = vy; draw();
+  });
+  stage.addEventListener("pointerup", () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.vy > -150) { draw(); return; }
+    ball.vx = d.vx; ball.vy = d.vy; state = "fly"; B.sfx.swish();
+  });
+  function end() {
+    state = "over";
+    B.gameOver({
+      id: "tiro", score, good: made >= 5, back: "index.html",
+      format: (v) => v + " pts", detail: made + "/" + TOTAL + " encestes",
+      titles: [
+        { min: 1800, t: "Leyenda de la Papelera" },
+        { min: 1100, t: "Francotirador de Bolitas" },
+        { min: 600, t: "Encestador de Baño" },
+        { min: 200, t: "Le Dio al Borde" },
+        { min: 0, t: "Papel en el Piso" },
+      ],
+      onRetry: start,
+    });
+  }
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
+  $("resume").addEventListener("click", () => { B.overlay("pause", false); home(); state = "aim"; last = performance.now(); requestAnimationFrame(loop); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && (state === "fly" || state === "aim")) { state = "paused"; B.overlay("pause", true); } });
+  home(); draw();
+  Sprites.favicon("trash");
+})();
+</script>
+</body>
+</html>

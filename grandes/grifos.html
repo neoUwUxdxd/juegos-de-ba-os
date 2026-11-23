@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Grifos en Orden</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--blue); color: #fff; }
+    .area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 10px 16px 24px; }
+    .status { font-family: var(--font-title); font-weight: 600; font-size: 1.3rem; text-align: center; min-height: 1.6em; }
+    .pads { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: min(100%, 380px); }
+    .pad {
+      --c: var(--mint); --cd: var(--mint-deep);
+      appearance: none; border: 0; cursor: pointer; aspect-ratio: 1;
+      border-radius: 32px; font-size: 3.4rem;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--c) 70%, white), var(--c));
+      box-shadow: 0 7px 0 var(--cd), 0 16px 24px -12px var(--cd);
+      opacity: .55; transition: transform .1s, opacity .1s, filter .1s;
+    }
+    .pad.lit { opacity: 1; transform: translateY(4px) scale(1.04); filter: brightness(1.1); box-shadow: 0 3px 0 var(--cd), 0 0 0 6px rgba(255,255,255,.8), 0 0 30px var(--c); }
+    .pad:active { transform: translateY(5px); }
+    .area.listen .pad { opacity: .85; }
+    .p1 { --c: var(--mint); --cd: var(--mint-deep); } .p2 { --c: var(--pink); --cd: var(--pink-deep); }
+    .p3 { --c: var(--yellow); --cd: var(--yellow-deep); } .p4 { --c: var(--blue); --cd: var(--blue-deep); }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Grandes"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">G7</span>Grifos</div>
+    <div class="pill" id="round">Ronda 1</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="area" id="area">
+    <div class="status" id="status">Mira la secuencia…</div>
+    <div class="pads">
+      <button class="pad p1" data-i="0" aria-label="Regadera">🚿</button>
+      <button class="pad p2" data-i="1" aria-label="Grifo">🚰</button>
+      <button class="pad p3" data-i="2" aria-label="Tina">🛁</button>
+      <button class="pad p4" data-i="3" aria-label="Jabón">🧼</button>
+    </div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona 8–14 · G7</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="faucet"></i></span><div><h2>Grifos en orden</h2><p>Los grifos se encienden en un orden secreto. ¿Puedes repetirlo?</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Mira y escucha qué grifos se encienden.</span></li>
+          <li><b>2</b><span>Repite el mismo orden tocándolos.</span></li>
+          <li><b>3</b><span>Cada ronda suma uno más y va más rápido.</span></li>
+          <li><b>4</b><span>Un error y se acaba el agua.</span></li>
+        </ol>
+        <div class="actions"><button class="btn blue" id="go">Abrir los grifos</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const pads = [...document.querySelectorAll(".pad")], area = $("area");
+  const notes = [330, 415, 494, 587];
+  let seq = [], pos = 0, state = "idle", round = 0;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  function light(i, ms) {
+    pads[i].classList.add("lit"); B.tone(notes[i], ms / 1000, { type: "triangle", vol: 0.16 });
+    setTimeout(() => pads[i].classList.remove("lit"), ms);
+  }
+  async function play() {
+    state = "show"; area.classList.remove("listen");
+    $("status").textContent = "Mira la secuencia…";
+    const speed = Math.max(220, 560 - round * 24);
+    await sleep(600);
+    for (const i of seq) { light(i, speed); await sleep(speed + 140); }
+    state = "listen"; pos = 0; area.classList.add("listen");
+    $("status").textContent = "¡Tu turno! (" + seq.length + ")";
+  }
+  function next() {
+    round++; $("round").textContent = "Ronda " + round;
+    seq.push(B.randInt(0, 3));
+    play();
+  }
+  pads.forEach((p) => p.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (state !== "listen") return;
+    const i = +p.dataset.i;
+    light(i, 220);
+    if (i !== seq[pos]) { state = "over"; B.sfx.bad(); B.vibrate(150); FX.shake(area); $("status").textContent = "¡Se tapó el grifo!"; setTimeout(end, 700); return; }
+    pos++;
+    if (pos === seq.length) {
+      state = "wait"; B.vibrate(15);
+      $("status").textContent = B.pick(["¡Bien!", "¡Perfecto!", "¡Eso!", "¡Qué memoria!"]);
+      const r = p.getBoundingClientRect(); FX.bubbles(r.left + r.width / 2, r.top + r.height / 2, 8);
+      setTimeout(next, 700);
+    }
+  }));
+  function start() { seq = []; round = 0; next(); }
+  function end() {
+    const done = Math.max(0, round - 1);
+    B.gameOver({
+      id: "grifos", score: done, good: done >= 6, back: "index.html",
+      format: (v) => v + (v === 1 ? " ronda" : " rondas"), detail: "Secuencia de " + seq.length,
+      titles: [
+        { min: 15, t: "Memoria de Plomero Maestro" },
+        { min: 10, t: "Cerebro de Esponja" },
+        { min: 6, t: "Abridor de Grifos" },
+        { min: 3, t: "Goteo Constante" },
+        { min: 0, t: "Dejó la Llave Abierta" },
+      ],
+      onRetry: start,
+    });
+  }
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); start(); });
+  Sprites.favicon("faucet");
+})();
+</script>
+</body>
+</html>

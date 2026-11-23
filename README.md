@@ -40,6 +40,11 @@ Para salir de la zona, un adulto mantiene presionado el botón de arriba.
 | **¿Verdad o Popó?**: datos curiosos de ciencia, ¿verdad o falso? | Ciencia |
 | **Pixel Azulejo**: pinta pixel art de 16×16 y descárgalo como imagen. | Creativo |
 | **Chistes del Cubículo**: chistes blancos de baño. | Humor |
+| **Tiro al Cesto**: desliza para encestar bolitas de papel, con viento. | Puntería |
+| **Grifos en Orden**: repite la secuencia de grifos que se encienden. | Memoria |
+| **Laberinto del Drenaje**: lleva al patito por un laberinto que crece. | Laberinto |
+| **Reflejos Relámpago**: toca en cuanto se ponga verde. | Reacción |
+| **Adivina la Palabra**: adivina letra por letra antes de que se acabe el papel. | Palabras |
 
 ### Diseño
 
