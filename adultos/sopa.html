@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Sopa de Letras</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
+  <script src="../js/jefe.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--pink-deep); color: #fff; }
+    .area { flex: 1; overflow-y: auto; padding: 4px 16px 90px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .theme { font-family: var(--font-title); font-size: 1.15rem; }
+    .soup { --cs: 34px; display: grid; grid-template-columns: repeat(10, var(--cs)); background: var(--card); border-radius: 18px; padding: 8px; box-shadow: var(--shadow); touch-action: none; }
+    .lt { width: var(--cs); height: var(--cs); display: grid; place-items: center; font-family: var(--font-title); font-weight: 600; font-size: calc(var(--cs) * .52); border-radius: 8px; color: var(--ink); }
+    .lt.sel { background: var(--yellow); }
+    .lt.found { color: #fff; }
+    .words { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 440px; }
+    .words span { background: var(--card); border-radius: 999px; padding: 5px 12px; font-weight: 800; font-size: .85rem; box-shadow: 0 2px 0 rgba(35,54,74,.08); }
+    .words span.ok { text-decoration: line-through; opacity: .45; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Adultos"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">A2</span>Sopa de letras</div>
+    <div class="pill" id="cnt">0/8</div><div class="pill" id="time">0:00</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="area">
+    <div class="theme" id="theme"></div>
+    <div class="soup" id="soup"></div>
+    <div class="words" id="words"></div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona adultos · A2</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="pencil"></i></span><div><h2>Sopa de letras</h2><p>Encuentra las 8 palabras escondidas. Pueden ir en cualquier dirección… hasta al revés.</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Desliza el dedo desde la primera hasta la última letra de la palabra.</span></li>
+          <li><b>2</b><span>Las palabras van en horizontal, vertical o diagonal, y también al revés.</span></li>
+          <li><b>3</b><span>Cada partida trae un tema distinto. Gana el menor tiempo.</span></li>
+        </ol>
+        <div class="actions"><button class="btn blue" id="go">Buscar</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const THEMES = {
+    "En el baño": ["INODORO", "REGADERA", "TOALLA", "JABON", "ESPEJO", "CEPILLO", "LAVABO", "ESPONJA", "CHAMPU", "BAÑERA", "PEINE", "GRIFO"],
+    "Cocina mexicana": ["TACO", "POZOLE", "TAMAL", "MOLE", "SALSA", "TORTILLA", "CHURRO", "ELOTE", "SOPE", "GORDITA", "NOPAL", "FLAN"],
+    "Países": ["MEXICO", "PERU", "CHILE", "ESPAÑA", "JAPON", "CANADA", "EGIPTO", "INDIA", "BRASIL", "ITALIA", "CUBA", "GRECIA"],
+    "Oficina": ["JEFE", "JUNTA", "CORREO", "INFORME", "NOMINA", "CAFE", "ESCRITORIO", "AGENDA", "CLIENTE", "PROYECTO", "HORARIO", "BONO"],
+    "Cine": ["ACTOR", "GUION", "ESCENA", "CAMARA", "DIRECTOR", "PALOMITAS", "TAQUILLA", "ESTRENO", "TRAILER", "OSCAR", "PANTALLA", "SECUELA"],
+  };
+  const N = 10, ABC = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ", COLORS = ["#4fd1b5", "#ff8fb1", "#67b8ff", "#b79bff", "#ffa45c", "#3ccf8e", "#e9b322", "#ff6b6b"];
+  const DIRS = [[1, 0], [0, 1], [1, 1], [1, -1], [-1, 0], [0, -1], [-1, -1], [-1, 1]];
+  let grid = [], words = [], found = new Set(), theme = "", t0 = 0, timer = 0, playing = false;
+  function place(word) {
+    for (let tries = 0; tries < 300; tries++) {
+      const [dx, dy] = B.pick(DIRS), x = B.randInt(0, N - 1), y = B.randInt(0, N - 1);
+      const ex = x + dx * (word.length - 1), ey = y + dy * (word.length - 1);
+      if (ex < 0 || ey < 0 || ex >= N || ey >= N) continue;
+      let ok = true;
+      for (let i = 0; i < word.length; i++) { const c = grid[y + dy * i][x + dx * i]; if (c && c !== word[i]) { ok = false; break; } }
+      if (!ok) continue;
+      for (let i = 0; i < word.length; i++) grid[y + dy * i][x + dx * i] = word[i];
+      return true;
+    }
+    return false;
+  }
+  function build() {
+    theme = B.pick(Object.keys(THEMES));
+    for (let attempt = 0; attempt < 20; attempt++) {
+      grid = Array.from({ length: N }, () => Array(N).fill(""));
+      words = B.shuffle(THEMES[theme]).filter((w) => w.length <= N).slice(0, 8).sort((a, b) => b.length - a.length);
+      if (words.every(place)) break;
+    }
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!grid[y][x]) grid[y][x] = ABC[B.randInt(0, ABC.length - 1)];
+    found = new Set();
+    const W = Math.min(window.innerWidth - 32, 420);
+    $("soup").style.setProperty("--cs", Math.floor((W - 16) / N) + "px");
+    $("soup").innerHTML = grid.map((row, y) => row.map((ch, x) => `<div class="lt" data-x="${x}" data-y="${y}">${ch}</div>`).join("")).join("");
+    $("theme").textContent = "Tema: " + theme;
+    paintWords();
+  }
+  function paintWords() {
+    $("words").innerHTML = words.map((w) => `<span class="${found.has(w) ? "ok" : ""}">${w}</span>`).join("");
+    $("cnt").textContent = found.size + "/" + words.length;
+  }
+  const cellAt = (x, y) => $("soup").querySelector(`.lt[data-x="${x}"][data-y="${y}"]`);
+  function lineCells(a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (!(dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy))) return null;
+    const n = Math.max(Math.abs(dx), Math.abs(dy)), sx = Math.sign(dx), sy = Math.sign(dy), out = [];
+    for (let i = 0; i <= n; i++) out.push({ x: a.x + sx * i, y: a.y + sy * i });
+    return out;
+  }
+  let a = null, cur = [];
+  const clearSel = () => $("soup").querySelectorAll(".lt.sel").forEach((e) => e.classList.remove("sel"));
+  const at = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); return el && el.classList.contains("lt") ? { x: +el.dataset.x, y: +el.dataset.y } : null; };
+  $("soup").addEventListener("pointerdown", (e) => { if (!playing) return; const p = at(e); if (!p) return; e.preventDefault(); a = p; cur = [p]; clearSel(); cellAt(p.x, p.y).classList.add("sel"); $("soup").setPointerCapture(e.pointerId); });
+  $("soup").addEventListener("pointermove", (e) => {
+    if (!a) return; const p = at(e); if (!p) return;
+    const l = lineCells(a, p); if (!l) return;
+    cur = l; clearSel(); l.forEach((c) => cellAt(c.x, c.y).classList.add("sel"));
+  });
+  const up = () => {
+    if (!a) return;
+    const s = cur.map((c) => grid[c.y][c.x]).join(""), r = s.split("").reverse().join("");
+    const w = words.find((w) => !found.has(w) && (w === s || w === r));
+    clearSel(); a = null;
+    if (!w) { if (cur.length > 1) B.sfx.click(); return; }
+    found.add(w);
+    const col = COLORS[(found.size - 1) % COLORS.length];
+    cur.forEach((c) => { const el = cellAt(c.x, c.y); el.classList.add("found"); el.style.background = col; });
+    B.sfx.good(); B.vibrate(15); paintWords();
+    if (found.size === words.length) win();
+  };
+  $("soup").addEventListener("pointerup", up); $("soup").addEventListener("pointercancel", up);
+  function win() {
+    playing = false; clearInterval(timer);
+    const secs = Math.round((Date.now() - t0) / 1000);
+    B.fx.confetti(); B.sfx.win();
+    setTimeout(() => B.gameOver({
+      id: "sopa", score: secs, lowerIsBetter: true, good: true, back: "index.html",
+      format: (v) => Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"), detail: "Tema: " + theme,
+      titles: [{ min: 90, t: "Ojo de Halcón" }, { min: 150, t: "Buscador Profesional" }, { min: 240, t: "Lector de Etiquetas de Champú" }, { min: 99999, t: "Se Quedó Leyendo el Bote" }],
+      onRetry: begin,
+    }), 900);
+  }
+  function begin() {
+    build(); playing = true; t0 = Date.now(); clearInterval(timer);
+    timer = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); $("time").textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }, 500);
+  }
+  build();
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); begin(); });
+  Sprites.favicon("pencil");
+})();
+</script>
+</body>
+</html>

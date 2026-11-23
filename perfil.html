@@ -170,7 +170,7 @@
       $("zoneBtn").textContent = zt; $("zoneBtn").href = zh;
       $("outBtn").textContent = A.online && A.user() ? "🚪 Cerrar sesión" : "🗑️ Borrar mi perfil";
       // estadísticas
-      const ids = ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia", "aterriza", "mate", "verdad", "tiro", "grifos", "laberinto", "reflejos", "ahorcado"];
+      const ids = ["lluvia", "cadena", "burbujas", "memorama", "tuberia", "trivia", "aterriza", "mate", "verdad", "tiro", "grifos", "laberinto", "reflejos", "ahorcado", "nonograma", "sopa", "solitario", "triviapro"];
       const total = ids.reduce((s, id) => s + B.plays(id), 0), tried = ids.filter((id) => B.plays(id)).length;
       $("stats").innerHTML = `<span>🎮 ${total} partidas</span><span>🧭 ${tried} juegos probados</span><span>📅 ${B.store.get("retos:count", 0)} retos</span>`;
       // reto

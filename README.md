@@ -46,6 +46,19 @@ Para salir de la zona, un adulto mantiene presionado el botón de arriba.
 | **Reflejos Relámpago**: toca en cuanto se ponga verde. | Reacción |
 | **Adivina la Palabra**: adivina letra por letra antes de que se acabe el papel. | Palabras |
 
+### 👔 Zona Adultos (15+)
+
+| | Qué es |
+|---|---|
+| **Nonograma del azulejo** | Puzzle de lógica: pinta azulejos según los números y aparece un dibujo. Uno del día. |
+| **Sopa de letras** | 8 palabras escondidas en 8 direcciones, con temas distintos. |
+| **Solitario** | El clásico, moviendo cartas con un toque. |
+| **Trivia difícil** | Historia, ciencia, geografía, cine y música. |
+| **Sueldo del trono** | Cronómetro que calcula cuánto te pagan por estar en el baño, con historial del mes. |
+| **Generador de excusas** | Más de 1 000 excusas para cuando tardas en el baño. |
+| **Diario del baño** | Registro privado con la escala de Bristol y estadísticas (solo en el celular). |
+| **Botón de jefe 👔** | En todas las páginas de la zona: convierte la pantalla en una hoja de cálculo falsa. |
+
 ### 🎁 Extras
 
 - **Mi perfil** (`perfil.html`): regístrate con apodo, edad y un avatar personalizable. Según tu edad te recomienda una zona.

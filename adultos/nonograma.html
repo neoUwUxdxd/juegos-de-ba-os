@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Nonograma del Azulejo</title>
+  <meta name="theme-color" content="#f3fbf9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/common.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/perfil.js"></script>
+  <script src="../js/jefe.js"></script>
+  <script src="../js/sprites.js"></script>
+  <style>
+    .hud { border-bottom-color: var(--blue); }
+    .hud-num { background: var(--pink-deep); color: #fff; }
+    .area { flex: 1; overflow-y: auto; padding: 4px 16px 90px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .ng { --cs: 28px; display: grid; grid-template-columns: 62px repeat(10, var(--cs)); grid-template-rows: auto repeat(10, var(--cs)); background: var(--card); border-radius: 18px; padding: 10px; box-shadow: var(--shadow); touch-action: none; }
+    .cc { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; font-weight: 800; font-size: .72rem; line-height: 1.15; padding-bottom: 4px; color: var(--ink); }
+    .rc { display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-weight: 800; font-size: .74rem; padding-right: 6px; color: var(--ink); }
+    .cc.ok, .rc.ok { color: #b9c4cf; }
+    .cell { border: 1px solid #dfe6ec; background: #fff; display: grid; place-items: center; font-size: .8rem; color: #c0392b; }
+    .cell.f { background: #2c4a66; border-color: #2c4a66; }
+    .cell.x::after { content: "✕"; }
+    .cell.b5 { border-right: 2px solid #9fb0bf; } .cell.r5 { border-bottom: 2px solid #9fb0bf; }
+    .ng.done .cell.f { background: var(--pink); border-color: var(--pink); }
+    .tools { display: flex; gap: 10px; }
+    .tools button { min-height: 46px; padding: 0 16px; border-radius: 999px; border: 0; font-weight: 800; background: var(--card); box-shadow: var(--shadow); cursor: pointer; }
+    .tools button.on { background: var(--mint); color: #fff; }
+    .name { font-family: var(--font-title); font-size: 1.1rem; color: var(--ink-soft); min-height: 1.3em; }
+  </style>
+</head>
+<body class="game-page">
+  <header class="hud">
+    <a class="icon-btn" href="index.html" aria-label="Volver a la Zona Adultos"><i data-sprite="door"></i></a>
+    <div class="hud-title"><span class="hud-num">A1</span>Nonograma</div>
+    <div class="pill" id="time">0:00</div>
+    <button class="icon-btn" id="mute"></button>
+  </header>
+  <div class="area">
+    <div class="name" id="name">¿Qué dibujo será?</div>
+    <div class="ng" id="ng"></div>
+    <div class="tools"><button class="on" id="mPaint">🖌️ Pintar</button><button id="mMark">✕ Marcar</button><button id="other">🔀 Otro</button></div>
+  </div>
+  <div class="overlay show" id="start">
+    <div class="panel">
+      <div class="panel-head"><span>Instrucciones</span><span>Zona adultos · A1</span></div>
+      <div class="panel-body">
+        <div class="hero"><span class="big-pic"><i data-sprite="grid"></i></span><div><h2>Nonograma del azulejo</h2><p>Pinta los azulejos correctos y descubre el dibujo escondido.</p></div></div>
+        <ol class="howto">
+          <li><b>1</b><span>Los números dicen cuántos azulejos seguidos van pintados en cada fila y columna, en orden.</span></li>
+          <li><b>2</b><span>Entre grupos siempre hay al menos un azulejo vacío.</span></li>
+          <li><b>3</b><span>Usa <b>✕ Marcar</b> para señalar los que seguro están vacíos.</span></li>
+          <li><b>4</b><span>Hay un dibujo del día. Gana el menor tiempo.</span></li>
+        </ol>
+        <div class="actions"><button class="btn red" id="go">Empezar</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const B = Bano, FX = Bano.fx;
+  const $ = (id) => document.getElementById(id);
+
+  const PICS = [
+    ["Corazón", [".##....##.", "####..####", "##########", "##########", "##########", ".########.", "..######..", "...####...", "....##....", ".........."]],
+    ["Patito", ["...###....", "..#####...", "..##.###..", "..#######.", "...####...", ".########.", "##########", "##########", ".########.", "..######.."]],
+    ["Inodoro", [".######...", ".######...", ".######...", "##########", "##########", ".########.", "..######..", "...####...", "...####...", "..######.."]],
+    ["Estrella", ["....##....", "....##....", "...####...", "##########", ".########.", "..######..", "..######..", ".###..###.", ".##....##.", "##......##"]],
+    ["Gota", ["....##....", "....##....", "...####...", "...####...", "..######..", ".########.", ".###.####.", ".##.#####.", "..######..", "...####..."]],
+    ["Casita", ["....##....", "...####...", "..######..", ".########.", "##########", ".########.", ".##.##.##.", ".##.##.##.", ".#####.##.", ".#####.##."]],
+    ["Pez", ["..........", "...###....", "..#####..#", ".#.######.", "##########", ".########.", "..#####..#", "...###....", "..........", ".........."]],
+    ["Carita feliz", ["..######..", ".#......#.", "#..#..#..#", "#..#..#..#", "#........#", "#.#....#.#", "#..####..#", "#........#", ".#......#.", "..######.."]],
+  ];
+  const N = 10, ng = $("ng");
+  let pic = 0, grid = [], mode = "f", t0 = 0, timer = 0, done = false, playing = false;
+  const runs = (arr) => { const r = []; let c = 0; arr.forEach((v) => { if (v) c++; else if (c) { r.push(c); c = 0; } }); if (c) r.push(c); return r.length ? r : [0]; };
+  const target = () => PICS[pic][1].map((row) => row.split("").map((ch) => ch === "#"));
+  function build() {
+    const T = target();
+    const W = Math.min(window.innerWidth - 32, 440);
+    ng.style.setProperty("--cs", Math.floor((W - 20 - 62) / N) + "px");
+    let h = "<div></div>";
+    for (let c = 0; c < N; c++) h += `<div class="cc" data-c="${c}">${runs(T.map((r) => r[c])).join("<br>")}</div>`;
+    for (let r = 0; r < N; r++) {
+      h += `<div class="rc" data-r="${r}">${runs(T[r]).join(" ")}</div>`;
+      for (let c = 0; c < N; c++) h += `<div class="cell${c === 4 ? " b5" : ""}${r === 4 ? " r5" : ""}" data-r="${r}" data-c="${c}"></div>`;
+    }
+    ng.innerHTML = h; ng.classList.remove("done");
+    grid = Array.from({ length: N }, () => Array(N).fill(0));
+    $("name").textContent = "¿Qué dibujo será?";
+  }
+  function paintClues() {
+    const T = target();
+    for (let r = 0; r < N; r++) ng.querySelector(`.rc[data-r="${r}"]`).classList.toggle("ok", runs(grid[r].map((v) => v === 1)).join() === runs(T[r]).join());
+    for (let c = 0; c < N; c++) ng.querySelector(`.cc[data-c="${c}"]`).classList.toggle("ok", runs(grid.map((row) => row[c] === 1)).join() === runs(T.map((row) => row[c])).join());
+  }
+  function setCell(el, val) {
+    const r = +el.dataset.r, c = +el.dataset.c;
+    if (grid[r][c] === val) return;
+    grid[r][c] = val;
+    el.classList.toggle("f", val === 1); el.classList.toggle("x", val === 2);
+  }
+  function check() {
+    paintClues();
+    const T = target();
+    const ok = T.every((row, r) => row.every((v, c) => v === (grid[r][c] === 1)));
+    if (!ok) return;
+    done = true; playing = false; clearInterval(timer);
+    ng.classList.add("done"); $("name").textContent = "¡Es un " + PICS[pic][0].toLowerCase() + "!";
+    const secs = Math.round((Date.now() - t0) / 1000);
+    B.sfx.win(); B.fx.confetti();
+    setTimeout(() => B.gameOver({
+      id: "nonograma", score: secs, lowerIsBetter: true, good: true, back: "index.html",
+      format: (v) => Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"), detail: PICS[pic][0],
+      titles: [
+        { min: 60, t: "Ingeniero de Azulejos" }, { min: 120, t: "Lógico del Trono" },
+        { min: 240, t: "Pintor de Baños" }, { min: 99999, t: "Artista sin Prisa" },
+      ],
+      onRetry: () => { pic = (pic + 1) % PICS.length; begin(); },
+    }), 1200);
+  }
+  let action = null;
+  ng.addEventListener("pointerdown", (e) => {
+    const el = e.target.closest(".cell"); if (!el || !playing) return;
+    e.preventDefault();
+    const cur = grid[+el.dataset.r][+el.dataset.c];
+    const want = mode === "f" ? 1 : 2;
+    action = cur === want ? 0 : want;
+    setCell(el, action); B.sfx.click();
+    ng.setPointerCapture(e.pointerId);
+  });
+  ng.addEventListener("pointermove", (e) => {
+    if (action === null) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (el && el.classList && el.classList.contains("cell")) setCell(el, action);
+  });
+  const up = () => { if (action !== null) { action = null; check(); } };
+  ng.addEventListener("pointerup", up); ng.addEventListener("pointercancel", up);
+  const setMode = (m) => { mode = m; $("mPaint").classList.toggle("on", m === "f"); $("mMark").classList.toggle("on", m === "x"); };
+  $("mPaint").addEventListener("click", () => setMode("f"));
+  $("mMark").addEventListener("click", () => setMode("x"));
+  $("other").addEventListener("click", () => { pic = (pic + 1) % PICS.length; begin(); B.sfx.swish(); });
+  function begin() {
+    build(); done = false; playing = true; t0 = Date.now();
+    clearInterval(timer);
+    timer = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); $("time").textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }, 500);
+  }
+  const k = Perfil.dayKey(); let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) >>> 0; pic = h % PICS.length;
+  build();
+  $("go").addEventListener("click", () => { B.sfx.click(); B.overlay("start", false); begin(); });
+  Sprites.favicon("grid");
+})();
+</script>
+</body>
+</html>
